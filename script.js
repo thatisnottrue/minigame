@@ -306,6 +306,23 @@ const growSequence = [
   }
 ];
 
+const stage2BackgroundDirectory = "public/assets/images/stage2_bg";
+const stage2BackgroundExtensions = ["png", "jpg"];
+const stage2BackgroundFiles = {
+  0: "bg_turn_0",
+  1: "bg_turn_1",
+  2: "bg_turn_2",
+  3: "bg_turn_3",
+  4: "bg_turn_4",
+  5: "bg_turn_5",
+  6: "bg_turn_6",
+  error: "bg_turn_error"
+};
+const stage2BackgroundCache = new Map();
+let stage2BackgroundRequestId = 0;
+let activeStage2BackgroundLayerIndex = 0;
+let currentStage2BackgroundUrl = null;
+
 const roleData = {
   "1004": {
     code: "1004",
@@ -446,6 +463,7 @@ const elements = {
   growButtons: document.querySelector("#grow-buttons"),
   growOrganisms: document.querySelector("#grow-organisms"),
   growEmptyMessage: document.querySelector("#grow-empty-message"),
+  stage2BackgroundLayers: Array.from(document.querySelectorAll(".stage2-bg-image")),
   toast: document.querySelector("#toast"),
   finalLetter: document.querySelector("#final-letter"),
   resultMessage: document.querySelector("#result-message"),
@@ -900,6 +918,84 @@ function renderGrowEndingPanel() {
   elements.resetGrow.classList.toggle("is-hidden", !state.growFailed);
 }
 
+function getStage2BackgroundKey() {
+  if (state.growFailed) return "error";
+  return String(getCorrectGrowProgress());
+}
+
+function loadStage2BackgroundUrl(backgroundKey) {
+  const fileBaseName = stage2BackgroundFiles[backgroundKey];
+  if (!fileBaseName) return Promise.resolve(null);
+
+  if (stage2BackgroundCache.has(backgroundKey)) {
+    return stage2BackgroundCache.get(backgroundKey);
+  }
+
+  const backgroundPromise = new Promise((resolve) => {
+    let extensionIndex = 0;
+
+    const tryNextExtension = () => {
+      const extension = stage2BackgroundExtensions[extensionIndex];
+      if (!extension) {
+        resolve(null);
+        return;
+      }
+
+      const url = `${stage2BackgroundDirectory}/${fileBaseName}.${extension}`;
+      const image = new Image();
+      image.onload = () => resolve(url);
+      image.onerror = () => {
+        extensionIndex += 1;
+        tryNextExtension();
+      };
+      image.src = url;
+    };
+
+    tryNextExtension();
+  });
+
+  stage2BackgroundCache.set(backgroundKey, backgroundPromise);
+  return backgroundPromise;
+}
+
+function clearStage2BackgroundImage() {
+  currentStage2BackgroundUrl = null;
+  elements.wetlandCanvas.style.backgroundImage = "none";
+  elements.stage2BackgroundLayers.forEach((layer) => {
+    layer.classList.remove("is-active");
+    layer.style.backgroundImage = "none";
+  });
+}
+
+async function applyStage2BackgroundImage() {
+  const requestId = stage2BackgroundRequestId + 1;
+  stage2BackgroundRequestId = requestId;
+  const backgroundKey = getStage2BackgroundKey();
+  elements.wetlandCanvas.dataset.stage2Background = backgroundKey;
+
+  const imageUrl = await loadStage2BackgroundUrl(backgroundKey);
+  if (requestId !== stage2BackgroundRequestId) return;
+
+  if (!imageUrl || elements.stage2BackgroundLayers.length < 2) {
+    clearStage2BackgroundImage();
+    return;
+  }
+
+  if (imageUrl === currentStage2BackgroundUrl) return;
+
+  const nextLayerIndex = activeStage2BackgroundLayerIndex === 0 ? 1 : 0;
+  const nextLayer = elements.stage2BackgroundLayers[nextLayerIndex];
+  const currentLayer = elements.stage2BackgroundLayers[activeStage2BackgroundLayerIndex];
+  const imageValue = `url("${imageUrl}")`;
+
+  currentStage2BackgroundUrl = imageUrl;
+  elements.wetlandCanvas.style.backgroundImage = imageValue;
+  nextLayer.style.backgroundImage = imageValue;
+  nextLayer.classList.add("is-active");
+  currentLayer.classList.remove("is-active");
+  activeStage2BackgroundLayerIndex = nextLayerIndex;
+}
+
 function renderGrowStage() {
   elements.growTurn.textContent = getGrowTurnText();
   elements.growEmptyMessage.classList.toggle("is-hidden", state.growPlacements.length > 0);
@@ -908,6 +1004,7 @@ function renderGrowStage() {
   elements.wetlandCanvas.classList.toggle("is-dry", backgroundTurn === 0);
   elements.wetlandCanvas.classList.toggle("is-restored", state.growComplete);
   elements.wetlandCanvas.classList.toggle("is-failed", state.growFailed);
+  applyStage2BackgroundImage();
   renderGrowEndingPanel();
   elements.growOrganisms.innerHTML = "";
   state.growPlacements.forEach((placement, index) => {
