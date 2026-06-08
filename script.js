@@ -217,7 +217,6 @@ const roleData = {
     roleName: "식물·곤충 전문가",
     badge: "식물·곤충",
     resultLetters: ["과"],
-    growLetter: "과",
     boardSize: 11,
     start: { x: 3, y: 3 },
     initialNextIndex: 0,
@@ -237,7 +236,6 @@ const roleData = {
     roleName: "미생물·어류 전문가",
     badge: "미생물·어류",
     resultLetters: ["학"],
-    growLetter: "학",
     boardSize: 11,
     start: { x: 5, y: 1 },
     traceAlgorithm: "microFishHangul",
@@ -252,7 +250,6 @@ const roleData = {
     roleName: "조류·포유류 전문가",
     badge: "조류·포유류",
     resultLetters: ["실"],
-    growLetter: "실",
     path: [
       { x: 1, y: 9, label: "어류 자원 풍부" },
       { x: 3, y: 7, label: "수달(포유류) 정착" },
@@ -345,7 +342,6 @@ const elements = {
   growButtons: document.querySelector("#grow-buttons"),
   growOrganisms: document.querySelector("#grow-organisms"),
   growEmptyMessage: document.querySelector("#grow-empty-message"),
-  growFinalLetter: document.querySelector("#grow-final-letter"),
   toast: document.querySelector("#toast"),
   finalLetter: document.querySelector("#final-letter"),
   resultMessage: document.querySelector("#result-message"),
@@ -800,9 +796,6 @@ function renderGrowStage() {
   elements.wetlandCanvas.classList.toggle("is-restored", state.growComplete);
   elements.wetlandCanvas.classList.toggle("is-failed", state.growFailed);
   renderGrowEndingPanel();
-  elements.growFinalLetter.textContent = state.growComplete ? `[ ${state.role.growLetter} ]` : "";
-  elements.growFinalLetter.classList.toggle("is-hidden", !state.growComplete);
-
   elements.growOrganisms.innerHTML = "";
   state.growPlacements.forEach((placement, index) => {
     const organism = growSequence.find((item) => item.key === placement.key);
