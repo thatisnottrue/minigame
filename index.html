@@ -73,8 +73,20 @@
         <div class="grow-header" aria-live="polite">
           <strong id="grow-turn">Turn 1 / 6</strong>
         </div>
-        <div id="wetland-canvas" class="wetland-canvas is-dry" aria-label="경포습지 생태계 복원 캔버스">
-          <div class="canvas-sky" aria-hidden="true"></div>
+        <div id="wetland-canvas" class="wetland-canvas is-dry" data-grow-turn="0" aria-label="경포습지 생태계 복원 캔버스">
+          <div class="dynamic-background" aria-hidden="true">
+            <div class="bg-layer bg-soil"></div>
+            <div class="bg-layer bg-rich-soil"></div>
+            <div class="bg-layer bg-water"></div>
+            <div class="bg-layer bg-greenery"></div>
+            <div class="bg-layer bg-particles"></div>
+            <div class="bg-layer bg-ripples"></div>
+            <div class="bg-layer bg-sky-bright"></div>
+            <div class="bg-layer bg-birds"></div>
+            <div class="bg-layer bg-sunburst"></div>
+            <div class="bg-layer bg-sparkles"></div>
+            <div class="bg-layer bg-failure-filter"></div>
+          </div>
           <div id="grow-empty-message" class="grow-empty-message">텅 빈 메마른 습지입니다.<br>생태계 천이의 첫 단계를 선택하세요.</div>
           <div id="grow-organisms" class="grow-organisms"></div>
         </div>

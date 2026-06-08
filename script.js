@@ -869,10 +869,17 @@ function getGrowBadEffect(key) {
   return badEffects[key] || "선행 조건 부족으로 성장이 멈췄습니다.";
 }
 
+function getCorrectGrowProgress() {
+  const mismatchIndex = state.growPlacements.findIndex((placement, index) => placement.key !== growSequence[index].key);
+  if (mismatchIndex >= 0) return mismatchIndex;
+  return state.growPlacements.length;
+}
+
 function getGrowTurnText() {
+  const progress = getCorrectGrowProgress();
   if (state.growComplete) return "Turn 6 / 6 · 복원 완료";
-  if (state.growFailed) return "Turn 6 / 6 · 천이 실패";
-  return `Turn ${state.growPlacements.length + 1} / ${growSequence.length}`;
+  if (state.growFailed) return `Turn ${progress} / ${growSequence.length} · 천이 실패`;
+  return `Turn ${progress + 1} / ${growSequence.length}`;
 }
 
 function renderGrowEndingPanel() {
@@ -896,7 +903,9 @@ function renderGrowEndingPanel() {
 function renderGrowStage() {
   elements.growTurn.textContent = getGrowTurnText();
   elements.growEmptyMessage.classList.toggle("is-hidden", state.growPlacements.length > 0);
-  elements.wetlandCanvas.classList.toggle("is-dry", state.growPlacements.length === 0);
+  const backgroundTurn = getCorrectGrowProgress();
+  elements.wetlandCanvas.dataset.growTurn = String(backgroundTurn);
+  elements.wetlandCanvas.classList.toggle("is-dry", backgroundTurn === 0);
   elements.wetlandCanvas.classList.toggle("is-restored", state.growComplete);
   elements.wetlandCanvas.classList.toggle("is-failed", state.growFailed);
   renderGrowEndingPanel();
@@ -935,12 +944,14 @@ function renderGrowStage() {
 function chooseGrowOrganism(key) {
   if (state.growComplete || state.growFailed) return;
 
+  const expectedItem = growSequence[state.growPlacements.length];
+  const isCorrectTurnChoice = expectedItem?.key === key;
   const placedKeys = new Set(state.growPlacements.map((placement) => placement.key));
-  const canNewOrganismGrow = hasGrowPrerequisites(key, placedKeys);
+  const canNewOrganismGrow = isCorrectTurnChoice && hasGrowPrerequisites(key, placedKeys);
 
   state.growPlacements = state.growPlacements.map((placement) => {
     const currentKeys = new Set([...placedKeys, key]);
-    const canGrow = hasGrowPrerequisites(placement.key, currentKeys);
+    const canGrow = isCorrectTurnChoice && hasGrowPrerequisites(placement.key, currentKeys);
     const nextLevel = canGrow ? Math.min(placement.level + 1, 3) : placement.level;
     return {
       ...placement,
@@ -950,24 +961,17 @@ function chooseGrowOrganism(key) {
   });
   state.growPlacements.push({ key, level: 1, stunted: !canNewOrganismGrow });
 
-  const attemptedSequence = state.growPlacements.map((placement) => placement.key);
-  const isTrueSequence = growSequence.every((item, index) => attemptedSequence[index] === item.key);
-
-  if (state.growPlacements.length === growSequence.length) {
-    if (isTrueSequence) {
-      state.growComplete = true;
-      state.growPlacements = state.growPlacements.map((placement) => ({ ...placement, level: "MAX", stunted: false }));
-      showToast("경포가시연습지 완벽 복원 성공! STAGE 3 진입 버튼이 활성화되었습니다.", true);
-    } else {
-      state.growFailed = true;
-      showToast("생태계 평형이 어긋나 천이가 실패했습니다. 다시 복원해 보세요.", false);
-    }
-  } else if (canNewOrganismGrow) {
+  if (!isCorrectTurnChoice) {
+    state.growFailed = true;
     const selected = growSequence.find((item) => item.key === key);
-    showToast(`${selected.buttonLabel} 배치 완료! 선행 조건이 맞는 생물만 성장합니다.`, true);
+    showToast(`${selected.buttonLabel}은 올바른 천이 순서가 아니어서 생태계 진화가 중단되었습니다.`, false);
+  } else if (state.growPlacements.length === growSequence.length) {
+    state.growComplete = true;
+    state.growPlacements = state.growPlacements.map((placement) => ({ ...placement, level: "MAX", stunted: false }));
+    showToast("경포가시연습지 완벽 복원 성공! STAGE 3 진입 버튼이 활성화되었습니다.", true);
   } else {
     const selected = growSequence.find((item) => item.key === key);
-    showToast(`${selected.buttonLabel}은 선행 조건이 부족해 정상 성장하지 못했습니다.`, false);
+    showToast(`${selected.buttonLabel} 배치 완료! 배경이 Turn ${state.growPlacements.length} 단계로 진화합니다.`, true);
   }
 
   renderGrowStage();

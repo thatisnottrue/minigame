@@ -949,63 +949,202 @@ h1 {
   overflow: hidden;
   border: 10px solid rgba(246, 252, 240, 0.94);
   border-radius: 32px;
-  background:
-    radial-gradient(ellipse at 50% 88%, rgba(51, 129, 72, 0.32) 0 24%, transparent 25%),
-    linear-gradient(180deg, #e7d9b2 0 42%, #c7955b 43% 68%, #9b6a44 69% 100%);
+  background-color: #b79369;
   box-shadow: inset 0 -18px 80px rgba(70, 42, 17, 0.24), 0 22px 70px rgba(0, 0, 0, 0.24);
-  transition: background 600ms ease, box-shadow 600ms ease;
+  transition: background-color 1.5s ease, box-shadow 1.5s ease, filter 1.5s ease;
+  isolation: isolate;
 }
 
-.wetland-canvas::before,
-.wetland-canvas::after {
-  content: "";
+.dynamic-background,
+.bg-layer {
   position: absolute;
-  inset-inline: 0;
+  inset: 0;
   pointer-events: none;
 }
 
-.wetland-canvas::before {
-  bottom: 0;
-  height: 46%;
-  background:
-    radial-gradient(ellipse at 24% 72%, rgba(255, 255, 255, 0.22), transparent 24%),
-    linear-gradient(180deg, rgba(110, 83, 45, 0), rgba(80, 52, 29, 0.34));
+.dynamic-background {
+  z-index: 0;
+  overflow: hidden;
+  background-color: #b79369;
+  transition: background-color 1.5s ease, opacity 1.5s ease;
 }
 
-.wetland-canvas::after {
-  bottom: 13%;
-  height: 21%;
+.bg-layer {
   opacity: 0;
-  background: linear-gradient(90deg, transparent, rgba(95, 180, 205, 0.72), transparent);
-  filter: blur(8px);
-  transition: opacity 550ms ease;
+  transition: background-color 1.5s ease, opacity 1.5s ease, filter 1.5s ease, transform 1.5s ease;
 }
+
+.bg-soil {
+  opacity: 1;
+  background:
+    linear-gradient(36deg, transparent 0 46%, rgba(87, 79, 68, 0.46) 47% 49%, transparent 50% 100%) 12% 69% / 190px 90px,
+    linear-gradient(128deg, transparent 0 48%, rgba(104, 83, 65, 0.42) 49% 51%, transparent 52% 100%) 62% 78% / 230px 120px,
+    radial-gradient(ellipse at 25% 72%, rgba(238, 200, 132, 0.34), transparent 29%),
+    radial-gradient(ellipse at 72% 88%, rgba(96, 88, 77, 0.5), transparent 32%),
+    linear-gradient(180deg, #d4c09a 0 38%, #b88a5d 39% 68%, #8c7563 69% 100%);
+  filter: saturate(0.72) contrast(1.06);
+}
+
+.bg-rich-soil {
+  background:
+    radial-gradient(ellipse at 38% 75%, rgba(96, 66, 36, 0.84), transparent 36%),
+    radial-gradient(ellipse at 66% 82%, rgba(72, 49, 28, 0.8), transparent 34%),
+    linear-gradient(180deg, rgba(142, 104, 62, 0.14) 0 35%, #6c4a2f 36% 72%, #402b1e 100%);
+  filter: saturate(1.28) brightness(0.9);
+}
+
+.bg-water {
+  top: auto;
+  height: 48%;
+  background:
+    radial-gradient(ellipse at 50% 4%, rgba(255, 255, 255, 0.42), transparent 34%),
+    linear-gradient(180deg, rgba(91, 187, 219, 0.1), rgba(46, 147, 188, 0.78) 32%, rgba(27, 103, 151, 0.92));
+  filter: saturate(1.18);
+}
+
+.bg-greenery {
+  background:
+    radial-gradient(ellipse at 14% 82%, rgba(80, 169, 81, 0.86), transparent 27%),
+    radial-gradient(ellipse at 86% 80%, rgba(56, 139, 75, 0.82), transparent 31%),
+    radial-gradient(ellipse at 50% 69%, rgba(145, 205, 99, 0.46), transparent 30%),
+    repeating-linear-gradient(82deg, transparent 0 18px, rgba(45, 119, 55, 0.26) 19px 22px, transparent 23px 42px);
+  clip-path: polygon(0 56%, 100% 46%, 100% 100%, 0 100%);
+  filter: blur(0.5px) saturate(1.1);
+}
+
+.bg-particles,
+.bg-sparkles {
+  background:
+    radial-gradient(circle at 12% 35%, rgba(255, 241, 132, 0.9) 0 3px, transparent 4px),
+    radial-gradient(circle at 28% 24%, rgba(187, 255, 181, 0.72) 0 2px, transparent 3px),
+    radial-gradient(circle at 46% 42%, rgba(255, 242, 138, 0.78) 0 3px, transparent 4px),
+    radial-gradient(circle at 64% 27%, rgba(204, 255, 191, 0.7) 0 2px, transparent 3px),
+    radial-gradient(circle at 81% 38%, rgba(255, 233, 118, 0.82) 0 3px, transparent 4px);
+  animation: particleDrift 5s ease-in-out infinite alternate;
+}
+
+.bg-ripples {
+  top: auto;
+  height: 48%;
+  background:
+    repeating-radial-gradient(ellipse at 30% 48%, rgba(255, 255, 255, 0.48) 0 2px, transparent 3px 34px),
+    repeating-radial-gradient(ellipse at 72% 58%, rgba(176, 235, 255, 0.54) 0 2px, transparent 3px 38px),
+    linear-gradient(180deg, rgba(125, 218, 242, 0.18), rgba(26, 126, 190, 0.46));
+  mix-blend-mode: screen;
+  animation: rippleFlow 3.4s linear infinite;
+}
+
+.bg-sky-bright {
+  bottom: auto;
+  height: 56%;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.54), transparent 15%),
+    linear-gradient(180deg, #78d5ff 0%, #bdefff 62%, rgba(189, 239, 255, 0) 100%);
+}
+
+.bg-birds {
+  bottom: auto;
+  height: 42%;
+  background:
+    linear-gradient(135deg, transparent 0 48%, rgba(35, 60, 70, 0.58) 49% 51%, transparent 52%) 66% 28% / 28px 18px no-repeat,
+    linear-gradient(45deg, transparent 0 48%, rgba(35, 60, 70, 0.58) 49% 51%, transparent 52%) 69% 28% / 28px 18px no-repeat,
+    linear-gradient(135deg, transparent 0 48%, rgba(35, 60, 70, 0.42) 49% 51%, transparent 52%) 77% 20% / 22px 14px no-repeat,
+    linear-gradient(45deg, transparent 0 48%, rgba(35, 60, 70, 0.42) 49% 51%, transparent 52%) 80% 20% / 22px 14px no-repeat,
+    linear-gradient(135deg, transparent 0 48%, rgba(35, 60, 70, 0.34) 49% 51%, transparent 52%) 58% 17% / 20px 12px no-repeat,
+    linear-gradient(45deg, transparent 0 48%, rgba(35, 60, 70, 0.34) 49% 51%, transparent 52%) 61% 17% / 20px 12px no-repeat;
+  animation: birdGlide 8s ease-in-out infinite alternate;
+}
+
+.bg-sunburst {
+  background:
+    conic-gradient(from 12deg at 16% 17%, rgba(255, 236, 132, 0.34), transparent 7deg 18deg, rgba(255, 249, 184, 0.28) 24deg, transparent 34deg 48deg),
+    radial-gradient(circle at 16% 17%, rgba(255, 238, 117, 0.96) 0 7%, rgba(255, 230, 91, 0.38) 8% 19%, transparent 31%);
+  mix-blend-mode: screen;
+}
+
+.bg-sparkles {
+  background:
+    radial-gradient(circle at 10% 18%, rgba(255, 255, 255, 0.95) 0 2px, transparent 3px),
+    radial-gradient(circle at 22% 72%, rgba(255, 246, 151, 0.9) 0 3px, transparent 4px),
+    radial-gradient(circle at 39% 31%, rgba(255, 255, 255, 0.85) 0 2px, transparent 3px),
+    radial-gradient(circle at 55% 82%, rgba(255, 248, 171, 0.95) 0 3px, transparent 4px),
+    radial-gradient(circle at 73% 23%, rgba(255, 255, 255, 0.9) 0 2px, transparent 3px),
+    radial-gradient(circle at 91% 65%, rgba(255, 246, 151, 0.9) 0 3px, transparent 4px);
+  animation: sparklePulse 1.9s ease-in-out infinite alternate;
+}
+
+.bg-failure-filter {
+  z-index: 3;
+  background:
+    radial-gradient(ellipse at 50% 72%, rgba(104, 142, 31, 0.54), transparent 38%),
+    linear-gradient(180deg, rgba(75, 102, 58, 0.26), rgba(96, 27, 24, 0.28));
+  backdrop-filter: saturate(0.5) sepia(0.28) brightness(0.68);
+}
+
+.wetland-canvas[data-grow-turn="1"] .bg-rich-soil,
+.wetland-canvas[data-grow-turn="2"] .bg-rich-soil,
+.wetland-canvas[data-grow-turn="3"] .bg-rich-soil,
+.wetland-canvas[data-grow-turn="4"] .bg-rich-soil,
+.wetland-canvas[data-grow-turn="5"] .bg-rich-soil,
+.wetland-canvas[data-grow-turn="6"] .bg-rich-soil {
+  opacity: 1;
+}
+
+.wetland-canvas[data-grow-turn="2"] .bg-water,
+.wetland-canvas[data-grow-turn="3"] .bg-water,
+.wetland-canvas[data-grow-turn="4"] .bg-water,
+.wetland-canvas[data-grow-turn="5"] .bg-water,
+.wetland-canvas[data-grow-turn="6"] .bg-water {
+  opacity: 1;
+}
+
+.wetland-canvas[data-grow-turn="2"] .bg-greenery { opacity: 0.45; }
+.wetland-canvas[data-grow-turn="3"] .bg-greenery { opacity: 0.82; filter: saturate(1.35); }
+.wetland-canvas[data-grow-turn="4"] .bg-greenery,
+.wetland-canvas[data-grow-turn="5"] .bg-greenery,
+.wetland-canvas[data-grow-turn="6"] .bg-greenery { opacity: 1; filter: saturate(1.55); }
+
+.wetland-canvas[data-grow-turn="3"] .bg-particles,
+.wetland-canvas[data-grow-turn="4"] .bg-particles,
+.wetland-canvas[data-grow-turn="5"] .bg-particles { opacity: 0.42; }
+.wetland-canvas[data-grow-turn="6"] .bg-particles { opacity: 0.74; }
+
+.wetland-canvas[data-grow-turn="4"] .bg-water,
+.wetland-canvas[data-grow-turn="5"] .bg-water,
+.wetland-canvas[data-grow-turn="6"] .bg-water {
+  filter: saturate(1.55) brightness(1.1);
+}
+
+.wetland-canvas[data-grow-turn="4"] .bg-ripples,
+.wetland-canvas[data-grow-turn="5"] .bg-ripples { opacity: 0.52; }
+.wetland-canvas[data-grow-turn="6"] .bg-ripples { opacity: 0.72; }
+
+.wetland-canvas[data-grow-turn="5"] .bg-sky-bright,
+.wetland-canvas[data-grow-turn="6"] .bg-sky-bright { opacity: 1; }
+
+.wetland-canvas[data-grow-turn="5"] .bg-birds { opacity: 0.56; }
+.wetland-canvas[data-grow-turn="6"] .bg-birds { opacity: 0.76; }
+
+.wetland-canvas[data-grow-turn="6"] .bg-sunburst,
+.wetland-canvas[data-grow-turn="6"] .bg-sparkles { opacity: 1; }
 
 .wetland-canvas.is-dry {
   filter: saturate(0.72);
 }
 
 .wetland-canvas.is-restored {
-  background:
-    radial-gradient(circle at 12% 18%, rgba(255, 245, 163, 0.95), transparent 12%),
-    radial-gradient(ellipse at 50% 74%, rgba(87, 178, 210, 0.82) 0 32%, transparent 33%),
-    linear-gradient(180deg, #aee8ff 0 38%, #bfe7a4 39% 68%, #4c9d5c 69% 100%);
+  background-color: #88d7b3;
   box-shadow: inset 0 0 80px rgba(255, 255, 255, 0.32), 0 24px 90px rgba(53, 191, 116, 0.44);
   animation: restoredGlow 1.2s ease-in-out infinite alternate;
 }
 
-.wetland-canvas.is-restored::after {
-  opacity: 1;
+.wetland-canvas.is-failed {
+  background-color: #6d6845;
+  box-shadow: inset 0 -18px 80px rgba(48, 41, 15, 0.42), 0 22px 70px rgba(0, 0, 0, 0.28);
 }
 
-.canvas-sky {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 78% 16%, rgba(255, 255, 255, 0.86) 0 5%, transparent 6%),
-    radial-gradient(circle at 85% 20%, rgba(255, 255, 255, 0.64) 0 3%, transparent 4%);
-  opacity: 0.7;
-  pointer-events: none;
+.wetland-canvas.is-failed .bg-failure-filter {
+  opacity: 1;
 }
 
 .grow-empty-message {
@@ -1133,17 +1272,6 @@ h1 {
   font-weight: 1000;
 }
 
-.wetland-canvas.is-failed {
-  background:
-    radial-gradient(ellipse at 50% 74%, rgba(122, 158, 52, 0.74) 0 34%, transparent 35%),
-    linear-gradient(180deg, #b8c6a5 0 38%, #8f9f55 39% 68%, #6f5a38 69% 100%);
-  box-shadow: inset 0 -18px 80px rgba(48, 41, 15, 0.34), 0 22px 70px rgba(0, 0, 0, 0.28);
-}
-
-.wetland-canvas.is-failed::after {
-  opacity: 1;
-  background: linear-gradient(90deg, transparent, rgba(111, 161, 50, 0.72), transparent);
-}
 
 .grow-organism.is-stunted {
   color: #54321f;
@@ -1154,6 +1282,27 @@ h1 {
 
 .grow-organism.is-stunted em {
   background: linear-gradient(135deg, var(--danger), #9f5d30);
+}
+
+
+@keyframes particleDrift {
+  from { transform: translate3d(-8px, 8px, 0) scale(0.96); filter: blur(0); }
+  to { transform: translate3d(12px, -18px, 0) scale(1.05); filter: blur(1px); }
+}
+
+@keyframes rippleFlow {
+  from { transform: translateX(-18px) scale(1); }
+  to { transform: translateX(18px) scale(1.03); }
+}
+
+@keyframes birdGlide {
+  from { transform: translateX(18px) translateY(0); }
+  to { transform: translateX(-34px) translateY(8px); }
+}
+
+@keyframes sparklePulse {
+  from { transform: scale(0.98); filter: brightness(0.8); }
+  to { transform: scale(1.02); filter: brightness(1.45); }
 }
 
 @keyframes growPop {
