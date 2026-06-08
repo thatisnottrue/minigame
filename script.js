@@ -105,6 +105,19 @@ const microFishStrokePlan = [
   }
 ];
 
+// 에러 방지를 위해 필요한 유틸리티 함수들을 상위로 끌어올림
+function cellKey(point) {
+  return `${point.x},${point.y}`;
+}
+
+function edgeKey(from, to) {
+  return `${from}→${to}`;
+}
+
+function buildFoodWebAnswerEdges() {
+  return new Set(foodWebAnswerPairs.map(([from, to]) => edgeKey(from, to)));
+}
+
 function buildDenseMicroFishTraps() {
   const wrongLabels = [
     "짚신벌레류 증식",
@@ -152,6 +165,7 @@ function buildDenseMicroFishTraps() {
   return traps;
 }
 
+// 순서가 맞춰진 후 정상 변수 초기화 진행
 const foodWebAnswerEdges = buildFoodWebAnswerEdges();
 const pyramidOrder = ["생산자 1000", "1차 소비자 100", "2차 소비자 10", "최상위 소비자 1"];
 
@@ -320,6 +334,18 @@ function showScreen(screenName) {
   elements.resultScreen.classList.toggle("is-hidden", screenName !== "result");
 }
 
+function getBoardSize(role = state.role) {
+  return role ? (role.boardSize || DEFAULT_BOARD_SIZE) : DEFAULT_BOARD_SIZE;
+}
+
+function getTraceStart(role = state.role) {
+  return role ? (role.start || { ...TRACE_START_POINT }) : { ...TRACE_START_POINT };
+}
+
+function getInitialNextIndex(role = state.role) {
+  return role ? (role.initialNextIndex ?? 0) : 0;
+}
+
 function beginGame(role) {
   state.role = role;
   state.stageIndex = 0;
@@ -365,14 +391,6 @@ function renderStage() {
 
 function shuffle(items) {
   return [...items].sort(() => Math.random() - 0.5);
-}
-
-function buildFoodWebAnswerEdges() {
-  return new Set(foodWebAnswerPairs.map(([from, to]) => edgeKey(from, to)));
-}
-
-function edgeKey(from, to) {
-  return `${from}→${to}`;
 }
 
 function parseEdgeKey(key) {
@@ -637,10 +655,6 @@ function resetFoodWeb() {
   renderFoodWeb();
 }
 
-function cellKey(point) {
-  return `${point.x},${point.y}`;
-}
-
 function cellCenter(point) {
   return { x: point.x + 0.5, y: point.y + 0.5 };
 }
@@ -868,6 +882,17 @@ function completeTraceStage() {
   showToast(`STAGE 2 CLEAR! 최종 '${state.role.resultLetters.join(" / ")}' 자 완성! STAGE 3 진입 버튼이 활성화되었습니다.`, true);
 }
 
+function resetTraceProgress() {
+  const role = state.role;
+  state.player = getTraceStart(role);
+  state.nextIndex = getInitialNextIndex(role);
+  state.tracePoints = [cellCenter(state.player)];
+  state.traceSegments = [];
+  state.strokeStart = { ...state.player };
+  state.strokePlanIndex = 0;
+  state.traceComplete = false;
+}
+
 function resetTraceStage(message) {
   resetTraceProgress();
   showToast(message, false);
@@ -926,6 +951,27 @@ function showResult() {
   elements.resultMessage.textContent = `${role.roleName} 세션으로 3개 스테이지를 모두 완수했습니다. 조원과 글자 및 함정 해제 단서를 조합해 최종 장소를 도출하세요.`;
   elements.roleHint.textContent = role.hint;
   showScreen("result");
+}
+
+function goToStage(index) {
+  state.stageIndex = index;
+  renderStage();
+}
+
+function skipCurrentStage() {
+  if (state.stageIndex === 0) {
+    state.foodConnections = [...foodWebAnswerEdges];
+    showToast("STAGE 1을 건너뛰었습니다.", true);
+    goToStage(1);
+  } else if (state.stageIndex === 1) {
+    state.traceComplete = true;
+    showToast("STAGE 2를 건너뛰었습니다.", true);
+    goToStage(2);
+  } else if (state.stageIndex === 2) {
+    state.pyramidPlacements = [...pyramidOrder];
+    showToast("STAGE 3을 건너뛰었습니다.", true);
+    showResult();
+  }
 }
 
 let toastTimer;
@@ -993,4 +1039,3 @@ elements.restartButton.addEventListener("click", () => {
   elements.passcodeInput.focus();
 });
 elements.copyAnswer.addEventListener("click", () => showToast("정답 장소는 '과학실'입니다. 단, 조원끼리 근거를 설명해야 최종 해제 성공!", true));
-
