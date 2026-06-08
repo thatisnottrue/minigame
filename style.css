@@ -456,7 +456,7 @@ h1 {
 }
 
 .board-wrap.is-complete::after {
-  content: "교 완성";
+  content: "";
   position: absolute;
   inset: 0;
   z-index: 5;
