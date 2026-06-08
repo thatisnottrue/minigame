@@ -713,3 +713,16 @@ h1 {
     transform: rotate(90deg);
   }
 }
+
+.stage-clear-popup.is-minimal {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.stage-clear-popup.is-minimal h3,
+.stage-clear-popup.is-minimal p {
+  display: none;
+}
