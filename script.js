@@ -571,34 +571,9 @@ function getCurrentLegStart(role = state.role) {
   return { x: previousNode.x, y: previousNode.y };
 }
 
-function isPointOnCurrentTraceLeg(point) {
-  const nextNode = state.role.path[state.nextIndex];
-  if (!nextNode || nextNode.traceMode === "none") return false;
-
-  const start = getCurrentLegStart();
-  const isHorizontalLeg = start.y === nextNode.y;
-  const isVerticalLeg = start.x === nextNode.x;
-  if (!isHorizontalLeg && !isVerticalLeg) return false;
-
-  if (isHorizontalLeg) {
-    const minX = Math.min(start.x, nextNode.x);
-    const maxX = Math.max(start.x, nextNode.x);
-    return point.y === start.y && point.x >= minX && point.x <= maxX;
-  }
-
-  const minY = Math.min(start.y, nextNode.y);
-  const maxY = Math.max(start.y, nextNode.y);
-  return point.x === start.x && point.y >= minY && point.y <= maxY;
-}
-
-function isDrawableTraceStep(from, to) {
-  const nextNode = state.role.path[state.nextIndex];
-  if (!nextNode || nextNode.traceMode === "none" || !isPointOnCurrentTraceLeg(from) || !isPointOnCurrentTraceLeg(to)) return false;
-
-  const start = getCurrentLegStart();
-  const dx = Math.sign(nextNode.x - start.x);
-  const dy = Math.sign(nextNode.y - start.y);
-  return to.x - from.x === dx && to.y - from.y === dy;
+function addCompletedTraceLeg(node) {
+  if (!node || node.traceMode === "none") return;
+  addTraceSegment(getCurrentLegStart(), node);
 }
 
 function movePlayer(direction) {
@@ -613,7 +588,6 @@ function movePlayer(direction) {
   if (!delta) return;
 
   const boardSize = getBoardSize();
-  const currentPosition = { ...state.player };
   const nextPosition = { x: state.player.x + delta.x, y: state.player.y + delta.y };
   if (nextPosition.x < 0 || nextPosition.y < 0 || nextPosition.x >= boardSize || nextPosition.y >= boardSize) {
     showToast("그리드 밖으로는 이동할 수 없습니다.", false);
@@ -621,7 +595,6 @@ function movePlayer(direction) {
   }
 
   state.player = nextPosition;
-  if (isDrawableTraceStep(currentPosition, nextPosition)) addTraceSegment(currentPosition, nextPosition);
   evaluateTraceCell();
   renderTraceStage();
 }
@@ -641,6 +614,7 @@ function evaluateTraceCell() {
 
   if (!nextNode || cellKey(nextNode) !== playerKey) return;
 
+  addCompletedTraceLeg(nextNode);
   state.nextIndex += 1;
   state.strokeStart = { ...nextNode };
   addAutoTraceSegments(nextNode);
