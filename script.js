@@ -163,6 +163,8 @@ const elements = {
   boardWrap: document.querySelector("#board-wrap"),
   traceLayer: document.querySelector("#trace-layer"),
   enterStageThree: document.querySelector("#enter-stage-three"),
+  stageSkipControls: document.querySelector("#stage-skip-controls"),
+  skipStageButton: document.querySelector("#skip-stage-button"),
   pyramidStack: document.querySelector("#pyramid-stack"),
   pyramidBank: document.querySelector("#pyramid-bank"),
   resetPyramid: document.querySelector("#reset-pyramid"),
@@ -216,9 +218,39 @@ function renderStage() {
     elements.enterStageThree.disabled = true;
   }
 
+  updateStageSkipControls();
+
   if (state.stageIndex === 0) renderFoodWeb();
   if (state.stageIndex === 1) renderTraceStage();
   if (state.stageIndex === 2) renderPyramid();
+}
+
+// Temporary test-only stage skip controls.
+// Keep this block isolated so the skip button can be removed cleanly later.
+function updateStageSkipControls() {
+  if (!elements.stageSkipControls || !elements.skipStageButton) return;
+
+  const currentStageNumber = state.stageIndex + 1;
+  const nextLabel = state.stageIndex < stageCopy.length - 1
+    ? `STAGE ${currentStageNumber + 1}`
+    : "결과 화면";
+
+  elements.stageSkipControls.classList.toggle("is-hidden", !state.role);
+  elements.skipStageButton.textContent = `임시 스킵: ${nextLabel}로 바로 이동`;
+}
+
+function skipCurrentStageForTesting() {
+  if (!state.role) return;
+
+  if (state.stageIndex < stageCopy.length - 1) {
+    const nextStageIndex = state.stageIndex + 1;
+    showToast(`테스트용 스킵으로 STAGE ${nextStageIndex + 1}로 이동합니다.`, true);
+    goToStage(nextStageIndex);
+    return;
+  }
+
+  showToast("테스트용 스킵으로 결과 화면으로 이동합니다.", true);
+  showResult();
 }
 
 function shuffle(items) {
@@ -679,6 +711,7 @@ document.querySelectorAll("[data-move]").forEach((button) => {
 elements.checkFoodWeb.addEventListener("click", checkFoodWeb);
 elements.resetFoodWeb.addEventListener("click", resetFoodWeb);
 elements.resetPyramid.addEventListener("click", resetPyramid);
+elements.skipStageButton.addEventListener("click", skipCurrentStageForTesting);
 elements.enterStageThree.addEventListener("click", () => {
   if (!state.traceComplete) return;
   showToast("생태 피라미드로 이동합니다.", true);
