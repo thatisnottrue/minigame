@@ -2,35 +2,33 @@ const DEFAULT_BOARD_SIZE = 11;
 const TRACE_START_POINT = { x: 3, y: 3 };
 const leftFoodItems = [
   "가시연",
-  "녹조류",
   "연테두리진딧물",
-  "송사리",
   "실잠자리",
   "참개구리",
+  "녹조류",
+  "송사리",
   "모든 생물의 사체"
 ];
 
 const rightFoodItems = [
   "연테두리진딧물",
-  "송사리",
   "실잠자리",
   "참개구리",
   "물장군",
-  "미생물(메탄생성균)",
-  "물자라"
+  "송사리",
+  "수달",
+  "미생물(메탄생성균)"
 ];
 
 const foodWebAnswerPairs = [
   ["가시연", "연테두리진딧물"],
-  ["녹조류", "송사리"],
   ["연테두리진딧물", "실잠자리"],
-  ["송사리", "참개구리"],
-  ["실잠자리", "물장군"],
+  ["실잠자리", "참개구리"],
   ["참개구리", "물장군"],
+  ["녹조류", "송사리"],
+  ["송사리", "수달"],
   ["모든 생물의 사체", "미생물(메탄생성균)"]
 ];
-
-const foodWebNodes = [...leftFoodItems, ...rightFoodItems];
 
 const plantInsectTracePath = [
   {
@@ -460,8 +458,10 @@ function createFoodColumn(side, title, items) {
     button.type = "button";
     button.className = "match-node";
     button.textContent = label;
+    const nodeId = getFoodNodeId(side, label);
     button.dataset.side = side;
     button.dataset.label = label;
+    button.dataset.nodeId = nodeId;
     const isSelected = state.selectedFoodNodes[side] === label;
     button.setAttribute("aria-pressed", String(isSelected));
 
@@ -624,8 +624,12 @@ function getFoodLinkLayer() {
   return elements.cardBank.querySelector(".food-link-layer");
 }
 
+function getFoodNodeId(side, label) {
+  return `${side}:${label}`;
+}
+
 function getMatchNode(side, label) {
-  return elements.cardBank.querySelector(`.match-node[data-side="${side}"][data-label="${CSS.escape(label)}"]`);
+  return elements.cardBank.querySelector(`.match-node[data-node-id="${CSS.escape(getFoodNodeId(side, label))}"]`);
 }
 
 function getNodeAnchor(node, horizontalSide) {
