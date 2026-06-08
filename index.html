@@ -90,12 +90,30 @@
       </section>
 
       <section id="stage-three" class="stage-area stage-three is-hidden" aria-labelledby="stage-title">
-        <div class="pyramid-layout">
-          <div class="pyramid-stack" id="pyramid-stack" aria-label="생태 피라미드 쌓기 영역"></div>
-          <div class="pyramid-bank" id="pyramid-bank" aria-label="선택 가능한 에너지 블록"></div>
+        <div class="balance-layout">
+          <article class="balance-pyramid-panel" aria-labelledby="pyramid-panel-title">
+            <div class="panel-heading">
+              <p class="eyebrow">Crisis Pyramid</p>
+              <h3 id="pyramid-panel-title">경포습지 3단 생태 피라미드</h3>
+            </div>
+            <div id="pyramid-stack" class="eco-pyramid" aria-label="개체수 너비가 변하는 생태 피라미드"></div>
+            <p id="pyramid-step-caption" class="pyramid-step-caption">위기 상태: 1차 소비자가 일시적으로 급증해 중간 층만 비정상적으로 팽창했습니다.</p>
+          </article>
+
+          <article class="causal-card-panel" aria-labelledby="causal-panel-title">
+            <div class="panel-heading">
+              <p class="eyebrow">Cause & Effect</p>
+              <h3 id="causal-panel-title">자연 회복 인과관계 카드</h3>
+            </div>
+            <p class="pyramid-rule">카드 3장을 자연의 회복 순서에 맞게 슬롯으로 드래그하세요. 정답 순서는 생태계 평형이 무너진 뒤 먹이와 포식 압력이 조절되는 과정입니다.</p>
+            <div id="pyramid-bank" class="causal-slot-row" aria-label="인과관계 카드 배치 슬롯 3개"></div>
+            <div id="pyramid-card-bank" class="causal-card-bank" aria-label="섞여 있는 인과관계 카드 3장"></div>
+            <div class="action-row">
+              <button id="reset-pyramid" type="button" class="ghost-button">카드 다시 섞기</button>
+            </div>
+          </article>
         </div>
-        <p class="pyramid-rule">규칙: 아래층은 에너지가 가장 큰 생산자, 위로 갈수록 약 10%씩 줄어드는 소비자 단계입니다. 아래에서 위 순서로 클릭하세요.</p>
-        <button id="reset-pyramid" type="button" class="ghost-button">피라미드 초기화</button>
+        <div id="pyramid-popup" class="balance-popup is-hidden" role="dialog" aria-live="polite"></div>
       </section>
 
     </section>
@@ -103,7 +121,7 @@
     <section id="result-screen" class="screen result-screen is-hidden" aria-labelledby="result-title">
       <div class="result-card">
         <p class="eyebrow">Mission Complete</p>
-        <h2 id="result-title">역할별 복원 글자 완성!</h2>
+        <h2 id="result-title">최종 엔딩: 모든 방탈출 미션 성공!</h2>
         <div id="final-letter" class="final-letter">교</div>
         <p id="result-message"></p>
         <div class="hint-box">
