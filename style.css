@@ -916,3 +916,251 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
+
+.grow-stage {
+  gap: 18px;
+}
+
+.grow-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  color: #173428;
+  background: linear-gradient(90deg, #e8f3df, #fff7dc);
+  font-weight: 900;
+}
+
+.grow-header strong {
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: white;
+  background: var(--primary-dark);
+}
+
+.wetland-canvas {
+  position: relative;
+  display: grid;
+  min-height: clamp(420px, 52vw, 620px);
+  padding: clamp(18px, 4vw, 34px);
+  overflow: hidden;
+  border: 10px solid rgba(246, 252, 240, 0.94);
+  border-radius: 32px;
+  background:
+    radial-gradient(ellipse at 50% 88%, rgba(51, 129, 72, 0.32) 0 24%, transparent 25%),
+    linear-gradient(180deg, #e7d9b2 0 42%, #c7955b 43% 68%, #9b6a44 69% 100%);
+  box-shadow: inset 0 -18px 80px rgba(70, 42, 17, 0.24), 0 22px 70px rgba(0, 0, 0, 0.24);
+  transition: background 600ms ease, box-shadow 600ms ease;
+}
+
+.wetland-canvas::before,
+.wetland-canvas::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  pointer-events: none;
+}
+
+.wetland-canvas::before {
+  bottom: 0;
+  height: 46%;
+  background:
+    radial-gradient(ellipse at 24% 72%, rgba(255, 255, 255, 0.22), transparent 24%),
+    linear-gradient(180deg, rgba(110, 83, 45, 0), rgba(80, 52, 29, 0.34));
+}
+
+.wetland-canvas::after {
+  bottom: 13%;
+  height: 21%;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(95, 180, 205, 0.72), transparent);
+  filter: blur(8px);
+  transition: opacity 550ms ease;
+}
+
+.wetland-canvas.is-dry {
+  filter: saturate(0.72);
+}
+
+.wetland-canvas.is-restored {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255, 245, 163, 0.95), transparent 12%),
+    radial-gradient(ellipse at 50% 74%, rgba(87, 178, 210, 0.82) 0 32%, transparent 33%),
+    linear-gradient(180deg, #aee8ff 0 38%, #bfe7a4 39% 68%, #4c9d5c 69% 100%);
+  box-shadow: inset 0 0 80px rgba(255, 255, 255, 0.32), 0 24px 90px rgba(53, 191, 116, 0.44);
+  animation: restoredGlow 1.2s ease-in-out infinite alternate;
+}
+
+.wetland-canvas.is-restored::after {
+  opacity: 1;
+}
+
+.canvas-sky {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 78% 16%, rgba(255, 255, 255, 0.86) 0 5%, transparent 6%),
+    radial-gradient(circle at 85% 20%, rgba(255, 255, 255, 0.64) 0 3%, transparent 4%);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.grow-empty-message {
+  position: relative;
+  z-index: 2;
+  place-self: center;
+  padding: 18px 22px;
+  border: 2px dashed rgba(73, 47, 24, 0.35);
+  border-radius: 22px;
+  color: #68451f;
+  background: rgba(255, 247, 220, 0.82);
+  font-size: clamp(1.1rem, 3vw, 1.55rem);
+  font-weight: 1000;
+  text-align: center;
+  line-height: 1.45;
+}
+
+.grow-organisms {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+  gap: clamp(12px, 2vw, 18px);
+  align-content: end;
+  width: 100%;
+}
+
+.grow-organism {
+  display: grid;
+  gap: 5px;
+  min-height: 132px;
+  padding: 13px;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.64);
+  border-radius: 24px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 14px 32px rgba(16, 32, 28, 0.18);
+  transform: scale(var(--grow-scale, 1));
+  animation: growPop 420ms ease both;
+}
+
+.grow-organism .grow-emoji {
+  font-size: clamp(2rem, 6vw, 3.6rem);
+  line-height: 1;
+}
+
+.grow-organism strong {
+  color: var(--primary-dark);
+  font-size: 1.04rem;
+}
+
+.grow-organism em {
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: white;
+  background: linear-gradient(135deg, var(--primary), #66b86d);
+  font-size: 0.84rem;
+  font-style: normal;
+  font-weight: 1000;
+}
+
+.grow-organism small {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.wetland-canvas.is-restored .grow-organism {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 28px rgba(255, 244, 153, 0.82), 0 14px 36px rgba(23, 93, 53, 0.26);
+}
+
+.grow-final-letter {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  color: #fff8bf;
+  font-size: clamp(5.6rem, 19vw, 13rem);
+  font-weight: 1000;
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.95), 0 0 42px rgba(255, 176, 46, 0.9), 0 8px 22px rgba(16, 32, 28, 0.4);
+  animation: letterReveal 900ms ease both, letterShine 1.25s ease-in-out 900ms infinite alternate;
+  pointer-events: none;
+}
+
+.grow-buttons {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.grow-button {
+  min-height: 66px;
+  padding: 12px 10px;
+  border-radius: 18px;
+  color: #173428;
+  background: #fff7dc;
+  box-shadow: inset 0 0 0 2px rgba(247, 181, 56, 0.68), 0 10px 22px rgba(16, 32, 28, 0.1);
+  font-weight: 1000;
+  transition: transform 0.16s ease, background-color 0.16s ease, opacity 0.16s ease;
+}
+
+.grow-button:hover:not(:disabled),
+.grow-button:focus-visible:not(:disabled) {
+  transform: translateY(-2px);
+  background: #ffeaa4;
+}
+
+.grow-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+  filter: grayscale(0.35);
+}
+
+.grow-clear-popup {
+  border-color: rgba(63, 143, 93, 0.4);
+  box-shadow: 0 18px 52px rgba(63, 143, 93, 0.28);
+}
+
+@keyframes growPop {
+  from { opacity: 0; transform: translateY(18px) scale(calc(var(--grow-scale, 1) * 0.82)); }
+  to { opacity: 1; transform: translateY(0) scale(var(--grow-scale, 1)); }
+}
+
+@keyframes restoredGlow {
+  from { box-shadow: inset 0 0 70px rgba(255, 255, 255, 0.24), 0 24px 86px rgba(53, 191, 116, 0.35); }
+  to { box-shadow: inset 0 0 100px rgba(255, 255, 255, 0.42), 0 28px 110px rgba(255, 207, 64, 0.5); }
+}
+
+@keyframes letterReveal {
+  from { opacity: 0; transform: scale(0.35) rotate(-8deg); }
+  to { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes letterShine {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.22); }
+}
+
+@media (max-width: 900px) {
+  .grow-buttons,
+  .grow-organisms {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .grow-buttons,
+  .grow-organisms {
+    grid-template-columns: 1fr;
+  }
+
+  .wetland-canvas {
+    min-height: 520px;
+  }
+}
