@@ -59,11 +59,28 @@ const roleData = {
     resultLetters: ["교"],
     boardSize: 11,
     start: { x: 5, y: 1 },
+    strictTrace: true,
     path: [
-      { x: 2, y: 4, label: "가시연 부활", teleportTo: { x: 8, y: 4 } },
-      { x: 5, y: 4, label: "연테두리진딧물 증가", teleportTo: { x: 1, y: 6 } },
-      { x: 9, y: 6, label: "실잠자리 성충 증가", teleportTo: { x: 5, y: 6 } },
-      { x: 5, y: 10, label: "물장군 사냥 활성화" }
+      {
+        x: 5,
+        y: 2,
+        label: "가시연 부활",
+        teleportTo: { x: 1, y: 6 },
+        assistSegments: [
+          { from: { x: 5, y: 2 }, to: { x: 3, y: 4 } },
+          { from: { x: 5, y: 2 }, to: { x: 7, y: 4 } }
+        ]
+      },
+      { x: 9, y: 6, label: "연테두리진딧물 증가", teleportTo: { x: 5, y: 6 } },
+      { x: 5, y: 10, label: "실잠자리 성충 증가", teleportTo: { x: 3, y: 9 } },
+      {
+        x: 2,
+        y: 10,
+        label: "물장군 사냥 활성화",
+        assistSegments: [
+          { from: { x: 7, y: 9 }, to: { x: 8, y: 10 } }
+        ]
+      }
     ],
     traps: [
       { x: 0, y: 10, label: "식물 즙액 감소" },
@@ -117,7 +134,7 @@ const stageCopy = [
   },
   {
     title: "STAGE 2 - 인과관계 궤적",
-    description: "캐릭터를 움직여 활동지에서 도출한 생태학적 연쇄 반응 노드를 순서대로 밟으세요. 오답 노드에 닿으면 이 스테이지가 리셋됩니다."
+    description: "캐릭터를 움직여 활동지에서 도출한 생태학적 연쇄 반응 노드를 순서대로 밟으세요. 붉은 선은 플레이어 궤적, 파란 선은 시스템 보조 획이며 오답 노드에 닿으면 모두 지워지고 출발점으로 리셋됩니다."
   },
   {
     title: "STAGE 3 - 생태 피라미드",
@@ -527,24 +544,62 @@ function drawTrace() {
   elements.traceLayer.setAttribute("viewBox", `0 0 ${boardSize} ${boardSize}`);
   elements.traceLayer.innerHTML = "";
 
-  if (state.traceSegments.length > 0) {
-    state.traceSegments.forEach((segment) => {
-      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      line.setAttribute("x1", segment.from.x);
-      line.setAttribute("y1", segment.from.y);
-      line.setAttribute("x2", segment.to.x);
-      line.setAttribute("y2", segment.to.y);
-      line.setAttribute("vector-effect", "non-scaling-stroke");
-      elements.traceLayer.appendChild(line);
-    });
-    return;
+  state.traceSegments.forEach((segment) => {
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", segment.from.x);
+    line.setAttribute("y1", segment.from.y);
+    line.setAttribute("x2", segment.to.x);
+    line.setAttribute("y2", segment.to.y);
+    line.setAttribute("vector-effect", "non-scaling-stroke");
+    line.classList.add(segment.kind === "assist" ? "assist-trace" : "player-trace");
+    elements.traceLayer.appendChild(line);
+  });
+}
+
+function addTraceSegment(from, to, kind = "player") {
+  state.traceSegments.push({
+    from: cellCenter(from),
+    to: cellCenter(to),
+    kind
+  });
+}
+
+function addAssistSegments(node) {
+  (node.assistSegments || []).forEach((segment) => {
+    addTraceSegment(segment.from, segment.to, "assist");
+  });
+}
+
+function getExpectedStrokeStart(role = state.role) {
+  if (state.nextIndex === 0) return getTraceStart(role);
+  const previousNode = role.path[state.nextIndex - 1];
+  return previousNode.teleportTo ? { ...previousNode.teleportTo } : { x: previousNode.x, y: previousNode.y };
+}
+
+function isPointOnCurrentStroke(point) {
+  const nextNode = state.role.path[state.nextIndex];
+  if (!nextNode) return false;
+
+  const start = getExpectedStrokeStart();
+  const dx = Math.sign(nextNode.x - start.x);
+  const dy = Math.sign(nextNode.y - start.y);
+  const length = Math.max(Math.abs(nextNode.x - start.x), Math.abs(nextNode.y - start.y));
+
+  for (let step = 0; step <= length; step += 1) {
+    if (point.x === start.x + dx * step && point.y === start.y + dy * step) return true;
   }
 
-  if (state.tracePoints.length < 2) return;
-  const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-  polyline.setAttribute("points", state.tracePoints.map((point) => `${point.x},${point.y}`).join(" "));
-  polyline.setAttribute("vector-effect", "non-scaling-stroke");
-  elements.traceLayer.appendChild(polyline);
+  return false;
+}
+
+function isStepTowardNextNode(from, to) {
+  const nextNode = state.role.path[state.nextIndex];
+  if (!nextNode || !isPointOnCurrentStroke(from) || !isPointOnCurrentStroke(to)) return false;
+
+  const start = getExpectedStrokeStart();
+  const dx = Math.sign(nextNode.x - start.x);
+  const dy = Math.sign(nextNode.y - start.y);
+  return to.x - from.x === dx && to.y - from.y === dy;
 }
 
 function movePlayer(direction) {
@@ -553,12 +608,17 @@ function movePlayer(direction) {
     up: { x: 0, y: -1 },
     down: { x: 0, y: 1 },
     left: { x: -1, y: 0 },
-    right: { x: 1, y: 0 }
+    right: { x: 1, y: 0 },
+    downLeft: { x: -1, y: 1 },
+    downRight: { x: 1, y: 1 },
+    upLeft: { x: -1, y: -1 },
+    upRight: { x: 1, y: -1 }
   };
   const delta = deltas[direction];
   if (!delta) return;
 
   const boardSize = getBoardSize();
+  const currentPosition = { ...state.player };
   const nextPosition = { x: state.player.x + delta.x, y: state.player.y + delta.y };
   if (nextPosition.x < 0 || nextPosition.y < 0 || nextPosition.x >= boardSize || nextPosition.y >= boardSize) {
     showToast("그리드 밖으로는 이동할 수 없습니다.", false);
@@ -566,11 +626,13 @@ function movePlayer(direction) {
   }
 
   state.player = nextPosition;
-  evaluateTraceCell();
+  const isValidStroke = !state.role.strictTrace || isStepTowardNextNode(currentPosition, nextPosition);
+  if (isValidStroke) addTraceSegment(currentPosition, nextPosition, "player");
+  evaluateTraceCell(isValidStroke);
   renderTraceStage();
 }
 
-function evaluateTraceCell() {
+function evaluateTraceCell(isValidStroke) {
   const role = state.role;
   const playerKey = cellKey(state.player);
   const wrongNode = [...role.traps, ...(role.fakePath || [])].find((node) => cellKey(node) === playerKey);
@@ -578,23 +640,24 @@ function evaluateTraceCell() {
   const nextNode = role.path[state.nextIndex];
 
   if (wrongNode || (touchedPathNode && touchedPathNode !== nextNode)) {
-    resetTraceStage("생태계 인과관계가 맞지 않습니다!");
+    resetTraceStage("생태계 인과관계가 맞지 않습니다! 모든 붉은 선과 파란 선을 지우고 출발점으로 돌아갑니다.");
+    return;
+  }
+
+  if (!isValidStroke) {
+    resetTraceStage("정해진 획 좌표를 벗어났습니다! 모든 붉은 선과 파란 선을 지우고 출발점으로 돌아갑니다.");
     return;
   }
 
   if (!nextNode || cellKey(nextNode) !== playerKey) return;
 
   state.nextIndex += 1;
-  state.traceSegments.push({
-    from: cellCenter(state.strokeStart),
-    to: cellCenter(nextNode)
-  });
-  state.tracePoints.push(cellCenter(nextNode));
+  addAssistSegments(nextNode);
   showToast(`정답 인과관계 확인: ${nextNode.label}`, true);
 
   if (state.nextIndex >= role.path.length) {
     state.traceComplete = true;
-    showToast(`인과관계 궤적 완성! 완성된 '${role.resultLetters.join(" / ")}' 글자를 확인하고 STAGE 3로 이동하세요.`, true);
+    showToast("최종 '교' 자 완성! 확인 버튼을 눌러 STAGE 3로 이동하세요.", true);
     return;
   }
 
@@ -696,7 +759,11 @@ document.addEventListener("keydown", (event) => {
     ArrowLeft: "left",
     KeyA: "left",
     ArrowRight: "right",
-    KeyD: "right"
+    KeyD: "right",
+    KeyQ: "upLeft",
+    KeyE: "upRight",
+    KeyZ: "downLeft",
+    KeyC: "downRight"
   };
   const direction = keyMap[event.code];
   if (!direction) return;
