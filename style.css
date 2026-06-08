@@ -189,11 +189,23 @@ h1 {
   gap: 8px;
 }
 
-.hud-stats span {
+.hud-stats span,
+.skip-stage-button {
   padding: 9px 12px;
   border-radius: 999px;
   background: #e8f3df;
   white-space: nowrap;
+}
+
+.skip-stage-button {
+  color: var(--primary-dark);
+  font-weight: 900;
+  box-shadow: inset 0 0 0 2px rgba(63, 143, 93, 0.16);
+}
+
+.skip-stage-button:hover,
+.skip-stage-button:focus-visible {
+  background: #d9edcf;
 }
 
 .mission-panel {
