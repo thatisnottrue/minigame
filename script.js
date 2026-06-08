@@ -1,52 +1,36 @@
 const DEFAULT_BOARD_SIZE = 11;
 const TRACE_START_POINT = { x: 3, y: 3 };
-const foodWebGroups = [
-  {
-    name: "생산자",
-    nodes: ["가시연", "녹조류"]
-  },
-  {
-    name: "초식곤충",
-    nodes: ["벼메뚜기"]
-  },
-  {
-    name: "육식곤충",
-    nodes: ["실잠자리", "물장군"]
-  },
-  {
-    name: "어류",
-    nodes: ["송사리", "붕어", "가물치"]
-  },
-  {
-    name: "양서·파충류",
-    nodes: ["참개구리"]
-  },
-  {
-    name: "조류·포유류",
-    nodes: ["백로", "수달"]
-  },
-  {
-    name: "분해자",
-    nodes: ["미생물(메탄생성균)"]
-  }
+const leftFoodItems = [
+  "가시연",
+  "녹조류",
+  "연테두리진딧물",
+  "송사리",
+  "실잠자리",
+  "참개구리",
+  "모든 생물의 사체"
 ];
 
-const foodWebNodes = foodWebGroups.flatMap((group) => group.nodes);
-const decomposerNode = "미생물(메탄생성균)";
-
-const foodWebPredationRules = [
-  { prey: ["녹조류"], predators: ["송사리", "붕어"] },
-  { prey: ["가시연"], predators: ["벼메뚜기"] },
-  { prey: ["벼메뚜기"], predators: ["실잠자리", "참개구리", "백로"] },
-  { prey: ["실잠자리"], predators: ["물장군", "송사리", "붕어", "참개구리"] },
-  { prey: ["물장군"], predators: ["백로"] },
-  { prey: ["송사리"], predators: ["가물치", "백로"] },
-  { prey: ["붕어"], predators: ["가물치", "수달", "백로"] },
-  { prey: ["참개구리"], predators: ["물장군", "백로", "수달"] },
-  { prey: ["가물치"], predators: ["수달"] }
+const rightFoodItems = [
+  "연테두리진딧물",
+  "송사리",
+  "실잠자리",
+  "참개구리",
+  "물장군",
+  "미생물(메탄생성균)",
+  "물자라"
 ];
 
-const decomposerSourceNodes = ["가시연", "벼메뚜기", "가물치", "수달"];
+const foodWebAnswerPairs = [
+  ["가시연", "연테두리진딧물"],
+  ["녹조류", "송사리"],
+  ["연테두리진딧물", "실잠자리"],
+  ["송사리", "참개구리"],
+  ["실잠자리", "물장군"],
+  ["참개구리", "물장군"],
+  ["모든 생물의 사체", "미생물(메탄생성균)"]
+];
+
+const foodWebNodes = [...leftFoodItems, ...rightFoodItems];
 
 const plantInsectTracePath = [
   {
@@ -230,7 +214,7 @@ const roleData = {
 const stageCopy = [
   {
     title: "STAGE 1 - 먹이그물 잇기",
-    description: "경포가시연습지 생물들을 터치해 [먹히는 생물 ➔ 먹는 생물] 방향으로 연결하고, 죽은 사체는 [미생물]로 보내 생태계를 부활시키세요!"
+    description: "왼쪽 피식자와 오른쪽 포식자/분해자 노드를 1:1로 이어 총 7개의 먹이사슬을 완성하세요. 정답 선은 연한 초록색으로 고정되고, 오답 선은 빨간색으로 깜빡인 뒤 사라집니다."
   },
   {
     title: "STAGE 2 - 인과관계 궤적",
@@ -254,6 +238,10 @@ const state = {
   traceComplete: false,
   foodConnections: [],
   selectedFoodNode: null,
+  shuffledLeftItems: [],
+  shuffledRightItems: [],
+  activeDrag: null,
+  suppressPointerClick: false,
   pyramidPlacements: []
 };
 
@@ -317,6 +305,10 @@ function beginGame(role) {
   state.traceComplete = false;
   state.foodConnections = [];
   state.selectedFoodNode = null;
+  state.shuffledLeftItems = shuffle(leftFoodItems);
+  state.shuffledRightItems = shuffle(rightFoodItems);
+  state.activeDrag = null;
+  state.suppressPointerClick = false;
   state.pyramidPlacements = [];
   elements.roleBadge.textContent = role.badge;
   showScreen("game");
@@ -349,17 +341,7 @@ function shuffle(items) {
 }
 
 function buildFoodWebAnswerEdges() {
-  const edges = new Set();
-
-  foodWebPredationRules.forEach((rule) => {
-    rule.prey.forEach((prey) => {
-      rule.predators.forEach((predator) => edges.add(edgeKey(prey, predator)));
-    });
-  });
-
-  decomposerSourceNodes.forEach((node) => edges.add(edgeKey(node, decomposerNode)));
-
-  return edges;
+  return new Set(foodWebAnswerPairs.map(([from, to]) => edgeKey(from, to)));
 }
 
 function edgeKey(from, to) {
@@ -374,85 +356,102 @@ function parseEdgeKey(key) {
 function renderFoodWeb() {
   const completeCount = state.foodConnections.length;
   const totalCount = foodWebAnswerEdges.size;
+  const isComplete = completeCount === totalCount;
+
   elements.dropLane.innerHTML = "";
+  elements.dropLane.className = "drop-lane match-status-lane";
 
   const summary = document.createElement("div");
-  summary.className = "food-web-summary";
+  summary.className = "food-web-summary match-summary";
   summary.innerHTML = `
-    <strong>연결 현황 ${completeCount} / ${totalCount}</strong>
-    <span>카드를 차례대로 두 번 선택해 먹이 사슬을 만드세요. (예: 가시연 클릭 ➔ 벼메뚜기 클릭). 남은 사체와 배설물은 [미생물]로 연결해 청소해 줍니다.</span>
+    <strong>연결 현황 <span id="food-match-count">${completeCount} / ${totalCount}</span></strong>
+    <span>왼쪽 피식자와 오른쪽 포식자/분해자를 드래그 앤 드롭하거나 연속 클릭해 두꺼운 선으로 연결하세요.</span>
   `;
   elements.dropLane.appendChild(summary);
 
-  const connectionList = document.createElement("div");
-  connectionList.className = "connection-list";
-  if (state.foodConnections.length === 0) {
-    connectionList.textContent = "아직 연결한 화살표가 없습니다.";
-  } else {
-    state.foodConnections.forEach((key) => {
-      const { from, to } = parseEdgeKey(key);
-      const chip = document.createElement("button");
-      chip.type = "button";
-      chip.className = "connection-chip";
-      chip.textContent = `${from} ➜ ${to}`;
-      chip.title = "클릭하면 이 연결을 삭제합니다.";
-      chip.addEventListener("click", () => removeFoodConnection(key));
-      connectionList.appendChild(chip);
-    });
-  }
-  elements.dropLane.appendChild(connectionList);
-
   elements.cardBank.innerHTML = "";
-  foodWebGroups.forEach((group) => {
-    const groupWrap = document.createElement("section");
-    groupWrap.className = "food-group";
-    groupWrap.setAttribute("aria-label", `${group.name} 생물 카드`);
+  elements.cardBank.className = "card-bank match-board";
+  elements.cardBank.setAttribute("aria-label", "좌우 1:1 먹이사슬 매칭 보드");
 
-    const heading = document.createElement("h3");
-    heading.textContent = group.name;
-    groupWrap.appendChild(heading);
+  const linkLayer = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  linkLayer.classList.add("food-link-layer");
+  linkLayer.setAttribute("aria-hidden", "true");
+  elements.cardBank.appendChild(linkLayer);
 
-    const nodeWrap = document.createElement("div");
-    nodeWrap.className = "food-node-wrap";
+  elements.cardBank.appendChild(createFoodColumn("left", "피식자", state.shuffledLeftItems));
+  elements.cardBank.appendChild(createFoodColumn("right", "포식자 / 분해자", state.shuffledRightItems));
 
-    group.nodes.forEach((node) => {
-      const card = document.createElement("button");
-      card.className = "food-card";
-      card.type = "button";
-      card.textContent = node;
-      card.dataset.label = node;
-      const isSelected = state.selectedFoodNode === node;
-      const isCompleted = isFoodNodeCompleted(node);
-      card.setAttribute("aria-pressed", String(isSelected));
-      if (isSelected) card.classList.add("selected");
-      if (isCompleted) card.classList.add("completed");
-      card.addEventListener("click", () => chooseFoodNode(node));
-      nodeWrap.appendChild(card);
-    });
+  const popup = document.createElement("div");
+  popup.className = `stage-one-clear-popup${isComplete ? "" : " is-hidden"}`;
+  popup.setAttribute("role", "dialog");
+  popup.setAttribute("aria-live", "polite");
+  popup.innerHTML = `
+    <h3>STAGE 1 CLEAR!</h3>
+    <p>7개의 먹이사슬을 모두 정확히 연결했습니다. STAGE 2 진입 버튼이 활성화되었습니다.</p>
+  `;
+  elements.dropLane.appendChild(popup);
 
-    groupWrap.appendChild(nodeWrap);
-    elements.cardBank.appendChild(groupWrap);
-  });
+  elements.checkFoodWeb.textContent = "STAGE 2 진입";
+  elements.checkFoodWeb.disabled = !isComplete;
+  elements.checkFoodWeb.classList.toggle("stage-entry-ready", isComplete);
+
+  window.requestAnimationFrame(drawFoodConnections);
 }
 
-function chooseFoodNode(label) {
-  if (!foodWebNodes.includes(label)) return;
+function createFoodColumn(side, title, items) {
+  const column = document.createElement("section");
+  column.className = `match-column ${side}-column`;
+  column.setAttribute("aria-label", title);
 
-  if (!state.selectedFoodNode && isFoodNodeCompleted(label)) {
-    showToast(`${label}: 필요한 정답 연결을 모두 완료했습니다.`, true);
+  const heading = document.createElement("h3");
+  heading.textContent = title;
+  column.appendChild(heading);
+
+  const list = document.createElement("div");
+  list.className = "match-node-list";
+
+  items.forEach((label) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "match-node";
+    button.textContent = label;
+    button.dataset.side = side;
+    button.dataset.label = label;
+    button.setAttribute("aria-pressed", String(state.selectedFoodNode === label));
+
+    if (state.selectedFoodNode === label) button.classList.add("selected");
+    if (isFoodNodeCompleted(label, side)) button.classList.add("completed");
+
+    button.addEventListener("click", () => {
+      if (state.suppressPointerClick) return;
+      chooseFoodNode(label, side);
+    });
+    if (side === "left") {
+      button.addEventListener("pointerdown", (event) => startFoodDrag(event, label));
+    }
+
+    list.appendChild(button);
+  });
+
+  column.appendChild(list);
+  return column;
+}
+
+function chooseFoodNode(label, side) {
+  if (side === "left") {
+    if (isFoodNodeCompleted(label, side)) {
+      showToast(`${label}: 이미 정답 연결이 고정되었습니다.`, true);
+      return;
+    }
+
+    state.selectedFoodNode = state.selectedFoodNode === label ? null : label;
+    renderFoodWeb();
+    if (state.selectedFoodNode) showToast(`${label}: 피식자로 선택했습니다. 오른쪽 노드를 클릭하거나 드래그해 연결하세요.`, true);
     return;
   }
 
   if (!state.selectedFoodNode) {
-    state.selectedFoodNode = label;
-    renderFoodWeb();
-    showToast(`${label}: 먹히는 생물로 선택했습니다. 이제 먹는 생물을 선택하세요.`, true);
-    return;
-  }
-
-  if (state.selectedFoodNode === label) {
-    state.selectedFoodNode = null;
-    renderFoodWeb();
+    showToast("먼저 왼쪽 피식자 노드를 선택하세요.", false);
     return;
   }
 
@@ -465,111 +464,150 @@ function placeFoodConnection(from, to) {
 
   if (!foodWebAnswerEdges.has(key)) {
     renderFoodWeb();
-    showToast(`${from} ➜ ${to} 연결은 활동지 정답 먹이그물에 없습니다.`, false);
+    window.requestAnimationFrame(() => flashFoodConnection(getMatchNode("left", from), getMatchNode("right", to), "wrong"));
+    showToast(`${from} ➜ ${to} 연결은 정답 먹이사슬이 아닙니다.`, false);
     return;
   }
 
   if (state.foodConnections.includes(key)) {
     renderFoodWeb();
-    showToast("이미 연결한 화살표입니다.", false);
+    showToast("이미 연결한 먹이사슬입니다.", false);
     return;
   }
 
   state.foodConnections.push(key);
-  state.foodConnections.sort((a, b) => a.localeCompare(b, "ko"));
   renderFoodWeb();
   showToast(`${from} ➜ ${to} 연결 성공`, true);
+
+  if (state.foodConnections.length === foodWebAnswerEdges.size) {
+    showToast("STAGE 1 CLEAR! STAGE 2 진입 버튼이 활성화되었습니다.", true);
+  }
 }
 
-function removeFoodConnection(key) {
-  state.foodConnections = state.foodConnections.filter((connection) => connection !== key);
+function startFoodDrag(event, label) {
+  if (isFoodNodeCompleted(label, "left")) return;
+
+  event.preventDefault();
+  state.selectedFoodNode = label;
+  state.activeDrag = { from: label };
+  state.suppressPointerClick = true;
   renderFoodWeb();
+
+  const move = (moveEvent) => drawTempFoodLine(label, moveEvent.clientX, moveEvent.clientY);
+  const up = (upEvent) => {
+    document.removeEventListener("pointermove", move);
+    document.removeEventListener("pointerup", up);
+
+    const target = document.elementFromPoint(upEvent.clientX, upEvent.clientY)?.closest?.('.match-node[data-side="right"]');
+    state.activeDrag = null;
+
+    if (target?.dataset.label) {
+      placeFoodConnection(label, target.dataset.label);
+    } else {
+      state.selectedFoodNode = label;
+      renderFoodWeb();
+    }
+
+    window.setTimeout(() => {
+      state.suppressPointerClick = false;
+    }, 0);
+  };
+
+  document.addEventListener("pointermove", move);
+  document.addEventListener("pointerup", up, { once: true });
+  drawTempFoodLine(label, event.clientX, event.clientY);
 }
 
-function getRequiredOutgoingEdges(node) {
-  return [...foodWebAnswerEdges].filter((key) => parseEdgeKey(key).from === node);
+function drawFoodConnections() {
+  const layer = getFoodLinkLayer();
+  if (!layer) return;
+  layer.innerHTML = "";
+
+  state.foodConnections.forEach((key) => {
+    const { from, to } = parseEdgeKey(key);
+    const fromNode = getMatchNode("left", from);
+    const toNode = getMatchNode("right", to);
+    if (fromNode && toNode) appendFoodLine(layer, fromNode, toNode, "correct");
+  });
 }
 
-function isFoodNodeCompleted(node) {
-  const requiredEdges = getRequiredOutgoingEdges(node);
-  if (requiredEdges.length === 0) return false;
-  return requiredEdges.every((key) => state.foodConnections.includes(key));
+function drawTempFoodLine(from, clientX, clientY) {
+  const layer = getFoodLinkLayer();
+  const fromNode = getMatchNode("left", from);
+  if (!layer || !fromNode) return;
+
+  drawFoodConnections();
+  const start = getNodeCenter(fromNode);
+  const boardRect = elements.cardBank.getBoundingClientRect();
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.classList.add("food-line", "pending");
+  line.setAttribute("x1", start.x);
+  line.setAttribute("y1", start.y);
+  line.setAttribute("x2", clientX - boardRect.left);
+  line.setAttribute("y2", clientY - boardRect.top);
+  layer.appendChild(line);
+}
+
+function flashFoodConnection(fromNode, toNode, status) {
+  const layer = getFoodLinkLayer();
+  if (!layer || !fromNode || !toNode) return;
+  const line = appendFoodLine(layer, fromNode, toNode, status);
+  window.setTimeout(() => line.remove(), 520);
+}
+
+function appendFoodLine(layer, fromNode, toNode, status) {
+  const start = getNodeCenter(fromNode);
+  const end = getNodeCenter(toNode);
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.classList.add("food-line", status);
+  line.setAttribute("x1", start.x);
+  line.setAttribute("y1", start.y);
+  line.setAttribute("x2", end.x);
+  line.setAttribute("y2", end.y);
+  layer.appendChild(line);
+  return line;
+}
+
+function getFoodLinkLayer() {
+  return elements.cardBank.querySelector(".food-link-layer");
+}
+
+function getMatchNode(side, label) {
+  return elements.cardBank.querySelector(`.match-node[data-side="${side}"][data-label="${CSS.escape(label)}"]`);
+}
+
+function getNodeCenter(node) {
+  const boardRect = elements.cardBank.getBoundingClientRect();
+  const nodeRect = node.getBoundingClientRect();
+  return {
+    x: nodeRect.left - boardRect.left + nodeRect.width / 2,
+    y: nodeRect.top - boardRect.top + nodeRect.height / 2
+  };
+}
+
+function isFoodNodeCompleted(node, side) {
+  if (side === "left") return state.foodConnections.some((key) => parseEdgeKey(key).from === node);
+  return state.foodConnections.some((key) => parseEdgeKey(key).to === node);
 }
 
 function checkFoodWeb() {
-  const connected = new Set(state.foodConnections);
-  const missing = [...foodWebAnswerEdges].filter((key) => !connected.has(key));
-  const wrong = state.foodConnections.filter((key) => !foodWebAnswerEdges.has(key));
-
-  if (wrong.length > 0) {
-    showToast("정답 표에 없는 연결이 포함되어 있습니다. 잘못된 화살표를 삭제해 주세요.", false);
+  if (state.foodConnections.length !== foodWebAnswerEdges.size) {
+    showToast(`아직 ${foodWebAnswerEdges.size - state.foodConnections.length}개 연결이 남았습니다.`, false);
     return;
   }
 
-  if (missing.length > 0) {
-    const { from, to } = parseEdgeKey(missing[0]);
-    showToast(`아직 ${missing.length}개 연결이 남았습니다. 예: ${from} ➜ ${to}`, false);
-    return;
-  }
-
-  showToast("경포가시연습지 먹이그물과 분해자 순환 연결 성공! 인과관계 궤적으로 이동합니다.", true);
+  showToast("경포가시연습지 먹이사슬 매칭 성공! 인과관계 궤적으로 이동합니다.", true);
   goToStage(1);
 }
 
 function resetFoodWeb() {
   state.foodConnections = [];
   state.selectedFoodNode = null;
+  state.activeDrag = null;
+  state.suppressPointerClick = false;
+  state.shuffledLeftItems = shuffle(leftFoodItems);
+  state.shuffledRightItems = shuffle(rightFoodItems);
   renderFoodWeb();
-}
-
-function goToStage(stageIndex) {
-  state.stageIndex = stageIndex;
-  state.nextIndex = getInitialNextIndex();
-  if (stageIndex === 1) {
-    resetTraceProgress();
-  }
-  renderStage();
-}
-
-function skipCurrentStage() {
-  if (state.stageIndex === 0) {
-    state.selectedFoodNode = null;
-    showToast("STAGE 1을 스킵하고 인과관계 궤적으로 이동합니다.", true);
-    goToStage(1);
-    return;
-  }
-
-  if (state.stageIndex === 1) {
-    resetTraceProgress();
-    showToast("STAGE 2를 스킵하고 생태 피라미드로 이동합니다.", true);
-    goToStage(2);
-    return;
-  }
-
-  showToast("STAGE 3을 스킵하고 결과 화면으로 이동합니다.", true);
-  window.setTimeout(showResult, 250);
-}
-
-function getBoardSize(role = state.role) {
-  return role?.boardSize || DEFAULT_BOARD_SIZE;
-}
-
-function getTraceStart(role = state.role) {
-  return { ...(role?.start || TRACE_START_POINT) };
-}
-
-function getInitialNextIndex(role = state.role) {
-  return role?.initialNextIndex || 0;
-}
-
-function resetTraceProgress() {
-  state.player = getTraceStart();
-  state.nextIndex = getInitialNextIndex();
-  state.tracePoints = [cellCenter(state.player)];
-  state.traceSegments = [];
-  state.strokeStart = { ...state.player };
-  state.strokePlanIndex = 0;
-  state.traceComplete = false;
 }
 
 function cellKey(point) {
@@ -902,6 +940,10 @@ document.addEventListener("keydown", (event) => {
 
 document.querySelectorAll("[data-move]").forEach((button) => {
   button.addEventListener("click", () => movePlayer(button.dataset.move));
+});
+
+window.addEventListener("resize", () => {
+  if (state.stageIndex === 0) drawFoodConnections();
 });
 
 elements.checkFoodWeb.addEventListener("click", checkFoodWeb);
