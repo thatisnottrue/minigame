@@ -277,7 +277,7 @@ const stageCopy = [
   },
   {
     title: "STAGE 2 - 경포습지 생태계 통합 GROW 복원 게임",
-    description: "하단의 6개 생태 분류군을 6턴 동안 배치하세요. 선행 조건이 깔린 생물만 성장하며, 정답 순서(미생물 → 가시연 → 수서곤충 → 어류 → 조류 → 포유류)일 때만 완벽 복원됩니다."
+    description: "하단의 6개 생태 분류군을 6턴 동안 자유롭게 배치해 보세요. 생물들은 올바른 천이 순서와 선행 조건이 충족될 때만 상호작용하며 완벽한 생태계로 성장합니다."
   },
   {
     title: "STAGE 3 - 생태 피라미드",
@@ -342,7 +342,6 @@ const elements = {
   resetPyramid: document.querySelector("#reset-pyramid"),
   wetlandCanvas: document.querySelector("#wetland-canvas"),
   growTurn: document.querySelector("#grow-turn"),
-  growNext: document.querySelector("#grow-next"),
   growButtons: document.querySelector("#grow-buttons"),
   growOrganisms: document.querySelector("#grow-organisms"),
   growEmptyMessage: document.querySelector("#grow-empty-message"),
@@ -776,14 +775,6 @@ function getGrowTurnText() {
   return `Turn ${state.growPlacements.length + 1} / ${growSequence.length}`;
 }
 
-function getGrowNextText() {
-  if (state.growComplete) return "경포가시연습지 완벽 복원!";
-  if (state.growFailed) return "생태계 평형이 어긋나 천이가 실패했습니다.";
-
-  const nextStep = growSequence[state.growPlacements.length];
-  return nextStep ? `다음 천이 단계: ${nextStep.buttonLabel}` : "천이 결과 확인 중";
-}
-
 function renderGrowEndingPanel() {
   const ended = state.growComplete || state.growFailed;
   elements.stageClearPopup.classList.toggle("is-hidden", !ended);
@@ -804,7 +795,6 @@ function renderGrowEndingPanel() {
 
 function renderGrowStage() {
   elements.growTurn.textContent = getGrowTurnText();
-  elements.growNext.textContent = getGrowNextText();
   elements.growEmptyMessage.classList.toggle("is-hidden", state.growPlacements.length > 0);
   elements.wetlandCanvas.classList.toggle("is-dry", state.growPlacements.length === 0);
   elements.wetlandCanvas.classList.toggle("is-restored", state.growComplete);
