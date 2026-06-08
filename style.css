@@ -6,6 +6,7 @@
   --primary: #3f8f5d;
   --primary-dark: #236646;
   --accent: #ff263b;
+  --assist: #0877ff;
   --selected: #ffb02e;
   --completed: #8de6b0;
   --danger: #d1495b;
@@ -461,21 +462,44 @@ h1 {
   pointer-events: none;
 }
 
-.trace-layer polyline,
 .trace-layer line {
   fill: none;
-  stroke: var(--accent);
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 12;
+}
+
+.trace-layer .player-trace {
+  stroke: var(--accent);
   filter: drop-shadow(0 0 6px rgba(255, 38, 59, 0.58));
+}
+
+.trace-layer .assist-trace {
+  stroke: var(--assist);
+  filter: drop-shadow(0 0 6px rgba(8, 119, 255, 0.56));
 }
 
 .board-wrap.is-complete {
   transform: scale(0.88);
   transform-origin: center;
   transition: transform 650ms ease, box-shadow 650ms ease;
+  animation: completeGlow 1.25s ease-in-out infinite alternate;
   box-shadow: 0 26px 90px rgba(255, 38, 59, 0.34);
+}
+
+.board-wrap.is-complete::after {
+  content: "교 완성";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.94);
+  background: radial-gradient(circle, rgba(255, 122, 26, 0.26), rgba(8, 119, 255, 0.08), transparent 66%);
+  font-size: clamp(2rem, 8vw, 4.5rem);
+  font-weight: 1000;
+  text-shadow: 0 6px 22px rgba(16, 32, 28, 0.42);
+  pointer-events: none;
 }
 
 .stage-three-entry {
@@ -509,8 +533,9 @@ h1 {
 .mobile-pad {
   display: grid;
   grid-template-areas:
-    ". up ."
-    "left down right";
+    "upLeft up upRight"
+    "left down right"
+    "downLeft . downRight";
   grid-template-columns: repeat(3, 64px);
   justify-content: center;
   gap: 10px;
@@ -530,6 +555,10 @@ h1 {
 .pad-left { grid-area: left; }
 .pad-down { grid-area: down; }
 .pad-right { grid-area: right; }
+.pad-up-left { grid-area: upLeft; }
+.pad-up-right { grid-area: upRight; }
+.pad-down-left { grid-area: downLeft; }
+.pad-down-right { grid-area: downRight; }
 
 .pyramid-layout {
   grid-template-columns: minmax(260px, 1fr) minmax(240px, 1fr);
@@ -640,6 +669,11 @@ h1 {
 @keyframes pulse {
   from { transform: scale(1); }
   to { transform: scale(1.07); }
+}
+
+@keyframes completeGlow {
+  from { box-shadow: 0 26px 90px rgba(255, 38, 59, 0.34); }
+  to { box-shadow: 0 28px 110px rgba(8, 119, 255, 0.5); }
 }
 
 @media (max-width: 780px) {
