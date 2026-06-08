@@ -58,46 +58,44 @@ const roleData = {
     badge: "식물·곤충",
     resultLetters: ["교"],
     boardSize: 11,
-    start: { x: 5, y: 1 },
+    start: { x: 3, y: 2 },
+    initialNextIndex: 1,
     strictTrace: true,
     path: [
       {
-        x: 5,
+        x: 3,
         y: 2,
-        label: "가시연 부활",
-        teleportTo: { x: 1, y: 5 },
-        traceMode: "autoOnReach",
-        completionSegments: [
-          { from: { x: 5, y: 1 }, to: { x: 5, y: 2 } },
-          { from: { x: 3, y: 2 }, to: { x: 7, y: 2 } }
+        label: "가시연 부활"
+      },
+      {
+        x: 7,
+        y: 2,
+        label: "연테두리진딧물 증가",
+        teleportTo: { x: 3, y: 5 },
+        assistSegments: [
+          { from: { x: 7, y: 2 }, to: { x: 7, y: 4 } }
         ]
       },
       {
-        x: 1,
-        y: 5,
-        label: "연테두리진딧물 증가",
-        completeOnTeleport: true,
-        traceMode: "teleportOnly"
+        x: 3,
+        y: 6,
+        label: "실잠자리 성충 증가",
+        teleportTo: { x: 1, y: 6 },
+        assistSegments: [
+          { from: { x: 7, y: 5 }, to: { x: 7, y: 6 } }
+        ]
       },
       {
         x: 9,
-        y: 5,
-        label: "실잠자리 성충 증가",
-        teleportTo: { x: 5, y: 5 }
-      },
-      {
-        x: 5,
-        y: 9,
-        label: "물장군 사냥 활성화",
-        completionSegments: [
-          { from: { x: 5, y: 7 }, to: { x: 3, y: 9 } },
-          { from: { x: 5, y: 7 }, to: { x: 7, y: 9 } }
-        ]
+        y: 6,
+        label: "물장군 사냥 활성화"
       }
     ],
     traps: [
-      { x: 0, y: 10, label: "식물 즙액 감소" },
-      { x: 10, y: 10, label: "실잠자리 유충 전멸" }
+      { x: 0, y: 0, label: "식물 즙액 감소" },
+      { x: 10, y: 0, label: "진딧물 급감" },
+      { x: 0, y: 10, label: "실잠자리 유충 전멸" },
+      { x: 10, y: 10, label: "물장군 사냥 중단" }
     ],
     hint: "1. 당신이 미로에서 완성한 글자 [ 교 ]는 최종 장소 이름의 '첫 번째 글자'입니다.\n2. [함정 해제 단서]: 조류·포유류 대원의 화면에 글자가 두 개 떠서 혼란을 겪고 있습니다. 조류·포유류 대원에게 '황소개구리(교란종) 경로는 가짜이며, 오직 잉어를 주식으로 삼는 수중생활 포유류(수달)의 정답 경로로 만들어진 글자만 진짜'라고 알려주십시오!"
   },
@@ -147,7 +145,7 @@ const stageCopy = [
   },
   {
     title: "STAGE 2 - 인과관계 궤적",
-    description: "캐릭터를 상/하/좌/우로 한 칸씩 움직여 정답 노드를 순서대로 밟으세요. 순간이동 구간은 선이 그려지지 않으며, '교' 자 획은 붉은 고정 좌표선으로 완성됩니다."
+    description: "캐릭터를 상/하/좌/우로 움직여 활동지에서 도출한 생태학적 연쇄 반응 노드를 순서대로 밟으세요. 오답 노드에 닿으면 이 스테이지가 리셋됩니다."
   },
   {
     title: "STAGE 3 - 생태 피라미드",
@@ -193,8 +191,6 @@ const elements = {
   boardWrap: document.querySelector("#board-wrap"),
   traceLayer: document.querySelector("#trace-layer"),
   enterStageThree: document.querySelector("#enter-stage-three"),
-  stageSkipControls: document.querySelector("#stage-skip-controls"),
-  skipStageButton: document.querySelector("#skip-stage-button"),
   pyramidStack: document.querySelector("#pyramid-stack"),
   pyramidBank: document.querySelector("#pyramid-bank"),
   resetPyramid: document.querySelector("#reset-pyramid"),
@@ -220,7 +216,7 @@ function beginGame(role) {
   state.role = role;
   state.stageIndex = 0;
   state.player = getTraceStart(role);
-  state.nextIndex = 0;
+  state.nextIndex = getInitialNextIndex(role);
   state.tracePoints = [cellCenter(state.player)];
   state.traceSegments = [];
   state.strokeStart = { ...state.player };
@@ -248,39 +244,9 @@ function renderStage() {
     elements.enterStageThree.disabled = true;
   }
 
-  updateStageSkipControls();
-
   if (state.stageIndex === 0) renderFoodWeb();
   if (state.stageIndex === 1) renderTraceStage();
   if (state.stageIndex === 2) renderPyramid();
-}
-
-// Temporary test-only stage skip controls.
-// Keep this block isolated so the skip button can be removed cleanly later.
-function updateStageSkipControls() {
-  if (!elements.stageSkipControls || !elements.skipStageButton) return;
-
-  const currentStageNumber = state.stageIndex + 1;
-  const nextLabel = state.stageIndex < stageCopy.length - 1
-    ? `STAGE ${currentStageNumber + 1}`
-    : "결과 화면";
-
-  elements.stageSkipControls.classList.toggle("is-hidden", !state.role);
-  elements.skipStageButton.textContent = `임시 스킵: ${nextLabel}로 바로 이동`;
-}
-
-function skipCurrentStageForTesting() {
-  if (!state.role) return;
-
-  if (state.stageIndex < stageCopy.length - 1) {
-    const nextStageIndex = state.stageIndex + 1;
-    showToast(`테스트용 스킵으로 STAGE ${nextStageIndex + 1}로 이동합니다.`, true);
-    goToStage(nextStageIndex);
-    return;
-  }
-
-  showToast("테스트용 스킵으로 결과 화면으로 이동합니다.", true);
-  showResult();
 }
 
 function shuffle(items) {
@@ -463,7 +429,7 @@ function resetFoodWeb() {
 
 function goToStage(stageIndex) {
   state.stageIndex = stageIndex;
-  state.nextIndex = 0;
+  state.nextIndex = getInitialNextIndex();
   if (stageIndex === 1) {
     resetTraceProgress();
   }
@@ -479,9 +445,13 @@ function getTraceStart(role = state.role) {
   return { ...(role?.start || TRACE_START_POINT) };
 }
 
+function getInitialNextIndex(role = state.role) {
+  return role?.initialNextIndex || 0;
+}
+
 function resetTraceProgress() {
   state.player = getTraceStart();
-  state.nextIndex = 0;
+  state.nextIndex = getInitialNextIndex();
   state.tracePoints = [cellCenter(state.player)];
   state.traceSegments = [];
   state.strokeStart = { ...state.player };
@@ -579,8 +549,12 @@ function addTraceSegment(from, to, kind = "player") {
 }
 
 function addCompletionSegments(node) {
-  (node.completionSegments || node.assistSegments || []).forEach((segment) => {
+  (node.completionSegments || []).forEach((segment) => {
     addTraceSegment(segment.from, segment.to, "system");
+  });
+
+  (node.assistSegments || []).forEach((segment) => {
+    addTraceSegment(segment.from, segment.to, "assist");
   });
 }
 
@@ -811,7 +785,6 @@ document.querySelectorAll("[data-move]").forEach((button) => {
 elements.checkFoodWeb.addEventListener("click", checkFoodWeb);
 elements.resetFoodWeb.addEventListener("click", resetFoodWeb);
 elements.resetPyramid.addEventListener("click", resetPyramid);
-elements.skipStageButton.addEventListener("click", skipCurrentStageForTesting);
 elements.enterStageThree.addEventListener("click", () => {
   if (!state.traceComplete) return;
   showToast("생태 피라미드로 이동합니다.", true);
