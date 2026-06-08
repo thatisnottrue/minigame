@@ -101,18 +101,42 @@ const roleData = {
     code: "2005",
     roleName: "미생물·어류 전문가",
     badge: "미생물·어류",
-    resultLetters: ["무"],
+    resultLetters: ["학"],
+    boardSize: 11,
+    start: { x: 4, y: 2 },
     path: [
-      { x: 1, y: 9, label: "돌말류/녹조류 광합성" },
-      { x: 3, y: 7, label: "짚신벌레류 증식" },
-      { x: 5, y: 5, label: "송사리/큰가시고기 먹이 풍부" },
-      { x: 8, y: 3, label: "가물치/메기 평형 조절" }
+      {
+        x: 4,
+        y: 3,
+        label: "돌말류/녹조류 광합성",
+        autoSegments: [{ from: { x: 2, y: 3 }, to: { x: 6, y: 3 }, kind: "system" }]
+      },
+      {
+        x: 4,
+        y: 5,
+        label: "송사리/큰가시고기 먹이 풍부",
+        autoSegments: [{ from: { x: 2, y: 5 }, to: { x: 6, y: 5 }, kind: "system" }]
+      },
+      {
+        x: 7,
+        y: 5,
+        label: "가물치/메기 평형 조절",
+        autoSegments: [{ from: { x: 7, y: 2 }, to: { x: 7, y: 5 }, kind: "system" }]
+      },
+      {
+        x: 7,
+        y: 9,
+        label: "메탄가스 흡수 차단",
+        autoSegments: [{ from: { x: 2, y: 9 }, to: { x: 7, y: 9 }, kind: "system" }]
+      }
     ],
     traps: [
-      { x: 2, y: 5, label: "메탄가스 흡수 차단" },
-      { x: 6, y: 7, label: "짚신벌레 광합성 시작" }
+      { x: 0, y: 0, label: "짚신벌레류 증식" },
+      { x: 10, y: 0, label: "짚신벌레 광합성 시작" },
+      { x: 0, y: 10, label: "미생물 군집 교란" },
+      { x: 10, y: 10, label: "어류 먹이망 단절" }
     ],
-    hint: "1. 당신이 미로에서 완성한 글자 [ 무 ]는 최종 장소 이름의 '두 번째 글자'입니다.\n2. [사용 방법]: 당신이 찾은 글자 뒤에 조류·포유류 대원이 찾아낸 '진짜 글자'를 결합하십시오."
+    hint: "1. 당신이 미로에서 완성한 글자 [ 학 ]는 최종 장소 이름의 '두 번째 글자'입니다.\n2. [사용 방법]: 당신이 찾은 글자 앞뒤에 다른 대원이 찾아낸 글자를 결합해 최종 장소를 도출하십시오."
   },
   "3006": {
     code: "3006",
@@ -143,7 +167,7 @@ const stageCopy = [
   },
   {
     title: "STAGE 2 - 인과관계 궤적",
-    description: "캐릭터를 상/하/좌/우로 자유롭게 움직여 정답 노드를 순서대로 밟으세요. 오답 노드나 순서가 다른 정답 노드에 닿으면 궤적이 초기화됩니다."
+    description: "캐릭터를 상/하/좌/우로 움직여 활동지에서 도출한 생태학적 연쇄 반응 노드를 순서대로 밟으세요. 오답 노드에 닿으면 이 스테이지가 리셋됩니다."
   },
   {
     title: "STAGE 3 - 생태 피라미드",
@@ -189,6 +213,7 @@ const elements = {
   boardWrap: document.querySelector("#board-wrap"),
   traceLayer: document.querySelector("#trace-layer"),
   stageClearPopup: document.querySelector("#stage-clear-popup"),
+  stageClearMessage: document.querySelector("#stage-clear-popup p"),
   enterStageThree: document.querySelector("#enter-stage-three"),
   skipStage: document.querySelector("#skip-stage"),
   pyramidStack: document.querySelector("#pyramid-stack"),
@@ -498,7 +523,9 @@ function renderTraceStage() {
   elements.board.style.setProperty("--board-size", boardSize);
   elements.boardWrap.style.setProperty("--board-size", boardSize);
   elements.boardWrap.classList.toggle("is-complete", state.traceComplete);
-  elements.enterStageThree.textContent = `완성된 '${role.resultLetters.join(" / ")}' 확인 완료 - STAGE 3 진입`;
+  const completedLetters = role.resultLetters.join(" / ");
+  elements.stageClearMessage.textContent = `붉은 플레이어 선과 파란 시스템 보조선으로 한글 '${completedLetters}'가 완성되었습니다.`;
+  elements.enterStageThree.textContent = `완성된 '${completedLetters}' 확인 완료 - STAGE 3 진입`;
   elements.stageClearPopup.classList.toggle("is-hidden", !state.traceComplete);
   elements.enterStageThree.disabled = !state.traceComplete;
 
@@ -553,15 +580,16 @@ function drawTrace() {
     line.setAttribute("x2", segment.to.x);
     line.setAttribute("y2", segment.to.y);
     line.setAttribute("vector-effect", "non-scaling-stroke");
-    line.classList.add("player-trace");
+    line.classList.add(segment.kind === "system" ? "system-trace" : "player-trace");
     elements.traceLayer.appendChild(line);
   });
 }
 
-function addTraceSegment(from, to) {
+function addTraceSegment(from, to, kind = "player") {
   state.traceSegments.push({
     from: cellCenter(from),
-    to: cellCenter(to)
+    to: cellCenter(to),
+    kind
   });
 }
 
@@ -626,12 +654,12 @@ function evaluateTraceCell() {
 }
 
 function addAutoTraceSegments(node) {
-  (node.autoSegments || []).forEach((segment) => addTraceSegment(segment.from, segment.to));
+  (node.autoSegments || []).forEach((segment) => addTraceSegment(segment.from, segment.to, segment.kind || "system"));
 }
 
 function completeTraceStage() {
   state.traceComplete = true;
-  showToast("STAGE 2 CLEAR! 최종 '교' 자 완성! STAGE 3 진입 버튼이 활성화되었습니다.", true);
+  showToast(`STAGE 2 CLEAR! 최종 '${state.role.resultLetters.join(" / ")}' 자 완성! STAGE 3 진입 버튼이 활성화되었습니다.`, true);
 }
 
 function resetTraceStage(message) {
@@ -749,5 +777,5 @@ elements.restartButton.addEventListener("click", () => {
   showScreen("start");
   elements.passcodeInput.focus();
 });
-elements.copyAnswer.addEventListener("click", () => showToast("정답 장소는 '교무실'입니다. 단, 조원끼리 근거를 설명해야 최종 해제 성공!", true));
+elements.copyAnswer.addEventListener("click", () => showToast("정답 장소는 '과학실'입니다. 단, 조원끼리 근거를 설명해야 최종 해제 성공!", true));
 
