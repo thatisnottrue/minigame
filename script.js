@@ -1,5 +1,4 @@
 const BOARD_SIZE = 11;
-const STORAGE_KEY = "eco-coop-mvp-save";
 const foodWebGroups = [
   {
     name: "생산자",
@@ -37,11 +36,12 @@ const decomposerNode = "미생물(메탄생성균)";
 const foodWebPredationRules = [
   { prey: ["녹조류"], predators: ["송사리", "붕어"] },
   { prey: ["가시연"], predators: ["벼메뚜기"] },
-  { prey: ["벼메뚜기"], predators: ["실잠자리", "참개구리"] },
-  { prey: ["실잠자리"], predators: ["물장군", "송사리"] },
+  { prey: ["벼메뚜기"], predators: ["실잠자리", "참개구리", "백로"] },
+  { prey: ["실잠자리"], predators: ["물장군", "송사리", "붕어", "참개구리"] },
+  { prey: ["물장군"], predators: ["백로"] },
   { prey: ["송사리"], predators: ["가물치", "백로"] },
-  { prey: ["붕어"], predators: ["수달"] },
-  { prey: ["참개구리"], predators: ["백로"] },
+  { prey: ["붕어"], predators: ["가물치", "수달", "백로"] },
+  { prey: ["참개구리"], predators: ["물장군", "백로", "수달"] },
   { prey: ["가물치"], predators: ["수달"] }
 ];
 
@@ -128,9 +128,6 @@ const state = {
   player: { x: 0, y: 10 },
   nextIndex: 0,
   tracePoints: [],
-  startTime: 0,
-  elapsedSeconds: 0,
-  timerId: null,
   foodConnections: [],
   selectedFoodNode: null,
   pyramidPlacements: []
@@ -143,16 +140,12 @@ const elements = {
   form: document.querySelector("#passcode-form"),
   passcodeInput: document.querySelector("#passcode-input"),
   passcodeError: document.querySelector("#passcode-error"),
-  savedSummary: document.querySelector("#saved-summary"),
   stageNumber: document.querySelector("#stage-number"),
   stageTitle: document.querySelector("#stage-title"),
   stageDescription: document.querySelector("#stage-description"),
   nextNodeWrap: document.querySelector("#next-node-wrap"),
   nextNode: document.querySelector("#next-node"),
   roleBadge: document.querySelector("#role-badge"),
-  stageStatus: document.querySelector("#stage-status"),
-  timer: document.querySelector("#timer"),
-  bestTime: document.querySelector("#best-time"),
   stageOne: document.querySelector("#stage-one"),
   stageTwo: document.querySelector("#stage-two"),
   stageThree: document.querySelector("#stage-three"),
@@ -169,40 +162,9 @@ const elements = {
   finalLetter: document.querySelector("#final-letter"),
   resultMessage: document.querySelector("#result-message"),
   roleHint: document.querySelector("#role-hint"),
-  finalTime: document.querySelector("#final-time"),
-  finalBest: document.querySelector("#final-best"),
   restartButton: document.querySelector("#restart-button"),
   copyAnswer: document.querySelector("#copy-answer")
 };
-
-function getSave() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { completedRoles: {}, bestTime: null };
-  } catch {
-    return { completedRoles: {}, bestTime: null };
-  }
-}
-
-function setSave(save) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
-  renderSavedSummary();
-}
-
-function formatTime(totalSeconds) {
-  if (!Number.isFinite(totalSeconds)) return "--:--";
-  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
-  const seconds = String(totalSeconds % 60).padStart(2, "0");
-  return `${minutes}:${seconds}`;
-}
-
-function renderSavedSummary() {
-  const save = getSave();
-  const completed = Object.values(save.completedRoles || {}).map((item) => item.badge).join(", ");
-  elements.savedSummary.textContent = completed
-    ? `클리어 역할: ${completed} · 최고 클리어 타임: ${formatTime(save.bestTime)}`
-    : "아직 클리어 기록이 없습니다.";
-  elements.bestTime.textContent = formatTime(save.bestTime);
-}
 
 function normalizePasscode(value) {
   return value.trim();
@@ -223,21 +185,9 @@ function beginGame(role) {
   state.foodConnections = [];
   state.selectedFoodNode = null;
   state.pyramidPlacements = [];
-  state.startTime = Date.now();
-  state.elapsedSeconds = 0;
-  window.clearInterval(state.timerId);
-  state.timerId = window.setInterval(updateTimer, 500);
   elements.roleBadge.textContent = role.badge;
-  elements.stageStatus.textContent = "진행 중";
-  updateTimer();
   showScreen("game");
   renderStage();
-}
-
-function updateTimer() {
-  if (!state.startTime) return;
-  state.elapsedSeconds = Math.floor((Date.now() - state.startTime) / 1000);
-  elements.timer.textContent = formatTime(state.elapsedSeconds);
 }
 
 function renderStage() {
@@ -609,24 +559,11 @@ function resetPyramid() {
 }
 
 function showResult() {
-  window.clearInterval(state.timerId);
-  updateTimer();
-  const save = getSave();
   const role = state.role;
-  save.completedRoles = save.completedRoles || {};
-  save.completedRoles[role.code] = {
-    badge: role.badge,
-    completedAt: new Date().toISOString(),
-    time: state.elapsedSeconds
-  };
-  if (!save.bestTime || state.elapsedSeconds < save.bestTime) save.bestTime = state.elapsedSeconds;
-  setSave(save);
 
   elements.finalLetter.textContent = role.resultLetters.join(" / ");
   elements.resultMessage.textContent = `${role.roleName} 세션으로 3개 스테이지를 모두 완수했습니다. 조원과 글자 및 함정 해제 단서를 조합해 최종 장소를 도출하세요.`;
   elements.roleHint.textContent = role.hint;
-  elements.finalTime.textContent = formatTime(state.elapsedSeconds);
-  elements.finalBest.textContent = formatTime(save.bestTime);
   showScreen("result");
 }
 
@@ -675,12 +612,9 @@ elements.checkFoodWeb.addEventListener("click", checkFoodWeb);
 elements.resetFoodWeb.addEventListener("click", resetFoodWeb);
 elements.resetPyramid.addEventListener("click", resetPyramid);
 elements.restartButton.addEventListener("click", () => {
-  window.clearInterval(state.timerId);
   elements.passcodeInput.value = "";
   showScreen("start");
-  renderSavedSummary();
   elements.passcodeInput.focus();
 });
 elements.copyAnswer.addEventListener("click", () => showToast("정답 장소는 '교무실'입니다. 단, 조원끼리 근거를 설명해야 최종 해제 성공!", true));
 
-renderSavedSummary();
