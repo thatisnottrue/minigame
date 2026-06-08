@@ -446,6 +446,11 @@ h1 {
   filter: drop-shadow(0 0 6px rgba(255, 38, 59, 0.58));
 }
 
+.trace-layer .system-trace {
+  stroke: #0877ff;
+  filter: drop-shadow(0 0 7px rgba(8, 119, 255, 0.62));
+}
+
 
 .board-wrap.is-complete {
   transform: scale(0.88);
@@ -462,11 +467,8 @@ h1 {
   z-index: 5;
   display: grid;
   place-items: center;
-  color: rgba(255, 255, 255, 0.94);
-  background: radial-gradient(circle, rgba(255, 122, 26, 0.26), rgba(8, 119, 255, 0.08), transparent 66%);
-  font-size: clamp(2rem, 8vw, 4.5rem);
-  font-weight: 1000;
-  text-shadow: 0 6px 22px rgba(16, 32, 28, 0.42);
+  background: rgba(7, 17, 15, 0.28);
+  animation: completeFade 650ms ease both;
   pointer-events: none;
 }
 
@@ -660,6 +662,11 @@ h1 {
 @keyframes completeGlow {
   from { box-shadow: 0 26px 90px rgba(255, 38, 59, 0.34); }
   to { box-shadow: 0 28px 110px rgba(8, 119, 255, 0.5); }
+}
+
+@keyframes completeFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @media (max-width: 780px) {
