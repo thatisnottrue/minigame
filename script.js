@@ -251,7 +251,7 @@ const state = {
   strokePlanIndex: 0,
   traceComplete: false,
   foodConnections: [],
-  selectedFoodNode: null,
+  selectedFoodNodes: { left: null, right: null },
   shuffledLeftItems: [],
   shuffledRightItems: [],
   activeDrag: null,
@@ -357,7 +357,7 @@ function beginGame(role) {
   state.strokePlanIndex = 0;
   state.traceComplete = false;
   state.foodConnections = [];
-  state.selectedFoodNode = null;
+  clearFoodSelection();
   state.shuffledLeftItems = shuffle(leftFoodItems);
   state.shuffledRightItems = shuffle(rightFoodItems);
   state.activeDrag = null;
@@ -462,9 +462,10 @@ function createFoodColumn(side, title, items) {
     button.textContent = label;
     button.dataset.side = side;
     button.dataset.label = label;
-    button.setAttribute("aria-pressed", String(state.selectedFoodNode === label));
+    const isSelected = state.selectedFoodNodes[side] === label;
+    button.setAttribute("aria-pressed", String(isSelected));
 
-    if (state.selectedFoodNode === label) button.classList.add("selected");
+    if (isSelected) button.classList.add("selected");
     if (isFoodNodeCompleted(label, side)) button.classList.add("completed");
 
     button.addEventListener("click", () => {
@@ -483,29 +484,30 @@ function createFoodColumn(side, title, items) {
 }
 
 function chooseFoodNode(label, side) {
-  if (side === "left") {
-    if (isFoodNodeCompleted(label, side)) {
-      showToast(`${label}: 이미 정답 연결이 고정되었습니다.`, true);
-      return;
-    }
-
-    state.selectedFoodNode = state.selectedFoodNode === label ? null : label;
-    renderFoodWeb();
-    if (state.selectedFoodNode) showToast(`${label}: 피식자로 선택했습니다. 오른쪽 노드를 클릭하거나 드래그해 연결하세요.`, true);
+  if (isFoodNodeCompleted(label, side)) {
+    showToast(`${label}: 이미 정답 연결이 고정되었습니다.`, true);
     return;
   }
 
-  if (!state.selectedFoodNode) {
-    showToast("먼저 왼쪽 피식자 노드를 선택하세요.", false);
+  state.selectedFoodNodes[side] = state.selectedFoodNodes[side] === label ? null : label;
+
+  const { left, right } = state.selectedFoodNodes;
+  if (left && right) {
+    placeFoodConnection(left, right);
     return;
   }
 
-  placeFoodConnection(state.selectedFoodNode, label);
+  renderFoodWeb();
+  if (state.selectedFoodNodes.left) {
+    showToast(`${state.selectedFoodNodes.left}: 피식자로 선택했습니다. 오른쪽 노드를 클릭하거나 드래그해 연결하세요.`, true);
+  } else if (state.selectedFoodNodes.right) {
+    showToast(`${state.selectedFoodNodes.right}: 포식자/분해자로 선택했습니다. 왼쪽 피식자 노드를 클릭해 연결하세요.`, true);
+  }
 }
 
 function placeFoodConnection(from, to) {
   const key = edgeKey(from, to);
-  state.selectedFoodNode = null;
+  clearFoodSelection();
 
   if (!foodWebAnswerEdges.has(key)) {
     renderFoodWeb();
@@ -533,7 +535,8 @@ function startFoodDrag(event, label) {
   if (isFoodNodeCompleted(label, "left")) return;
 
   event.preventDefault();
-  state.selectedFoodNode = label;
+  state.selectedFoodNodes.left = label;
+  state.selectedFoodNodes.right = null;
   state.activeDrag = { from: label };
   state.suppressPointerClick = true;
   renderFoodWeb();
@@ -549,7 +552,8 @@ function startFoodDrag(event, label) {
     if (target?.dataset.label) {
       placeFoodConnection(label, target.dataset.label);
     } else {
-      state.selectedFoodNode = label;
+      state.selectedFoodNodes.left = label;
+      state.selectedFoodNodes.right = null;
       renderFoodWeb();
     }
 
@@ -566,6 +570,7 @@ function startFoodDrag(event, label) {
 function drawFoodConnections() {
   const layer = getFoodLinkLayer();
   if (!layer) return;
+  syncFoodLinkLayerSize(layer);
   layer.innerHTML = "";
 
   state.foodConnections.forEach((key) => {
@@ -582,7 +587,8 @@ function drawTempFoodLine(from, clientX, clientY) {
   if (!layer || !fromNode) return;
 
   drawFoodConnections();
-  const start = getNodeCenter(fromNode);
+  syncFoodLinkLayerSize(layer);
+  const start = getNodeAnchor(fromNode, "right");
   const boardRect = elements.cardBank.getBoundingClientRect();
   const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
   line.classList.add("food-line", "pending");
@@ -601,8 +607,9 @@ function flashFoodConnection(fromNode, toNode, status) {
 }
 
 function appendFoodLine(layer, fromNode, toNode, status) {
-  const start = getNodeCenter(fromNode);
-  const end = getNodeCenter(toNode);
+  syncFoodLinkLayerSize(layer);
+  const start = getNodeAnchor(fromNode, "right");
+  const end = getNodeAnchor(toNode, "left");
   const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
   line.classList.add("food-line", status);
   line.setAttribute("x1", start.x);
@@ -621,13 +628,26 @@ function getMatchNode(side, label) {
   return elements.cardBank.querySelector(`.match-node[data-side="${side}"][data-label="${CSS.escape(label)}"]`);
 }
 
-function getNodeCenter(node) {
+function getNodeAnchor(node, horizontalSide) {
   const boardRect = elements.cardBank.getBoundingClientRect();
   const nodeRect = node.getBoundingClientRect();
+  const x = horizontalSide === "right" ? nodeRect.right - boardRect.left : nodeRect.left - boardRect.left;
   return {
-    x: nodeRect.left - boardRect.left + nodeRect.width / 2,
+    x,
     y: nodeRect.top - boardRect.top + nodeRect.height / 2
   };
+}
+
+function syncFoodLinkLayerSize(layer) {
+  const boardRect = elements.cardBank.getBoundingClientRect();
+  layer.setAttribute("viewBox", `0 0 ${boardRect.width} ${boardRect.height}`);
+  layer.setAttribute("width", String(boardRect.width));
+  layer.setAttribute("height", String(boardRect.height));
+}
+
+function clearFoodSelection() {
+  state.selectedFoodNodes.left = null;
+  state.selectedFoodNodes.right = null;
 }
 
 function isFoodNodeCompleted(node, side) {
@@ -647,7 +667,7 @@ function checkFoodWeb() {
 
 function resetFoodWeb() {
   state.foodConnections = [];
-  state.selectedFoodNode = null;
+  clearFoodSelection();
   state.activeDrag = null;
   state.suppressPointerClick = false;
   state.shuffledLeftItems = shuffle(leftFoodItems);
