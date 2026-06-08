@@ -165,7 +165,46 @@ function buildDenseMicroFishTraps() {
 
 // 순서가 맞춰진 후 정상 변수 초기화 진행
 const foodWebAnswerEdges = buildFoodWebAnswerEdges();
-const pyramidOrder = ["생산자 1000", "1차 소비자 100", "2차 소비자 10", "최상위 소비자 1"];
+const recoveryCards = [
+  { key: "A", text: "생산자 감소 & 2차 소비자 증가" },
+  { key: "B", text: "1차 소비자 감소" },
+  { key: "C", text: "생산자 증가 & 2차 소비자 감소 (평형 회복)" }
+];
+const recoveryAnswer = ["A", "B", "C"];
+const pyramidPhases = {
+  crisis: {
+    caption: "위기 상태: 1차 소비자가 일시적으로 급증해 중간 층만 비정상적으로 팽창했습니다.",
+    layers: [
+      { key: "secondary", label: "2차 소비자", detail: "상위 포식자", width: 34, count: "증가 전" },
+      { key: "primary", label: "1차 소비자", detail: "초식동물·곤충", width: 92, count: "비정상 급증" },
+      { key: "producer", label: "생산자", detail: "식물·조류", width: 56, count: "압박 시작" }
+    ]
+  },
+  step1: {
+    caption: "Step 1: 1차 소비자가 많아지자 생산자는 줄고, 먹이가 풍부해진 2차 소비자는 증가합니다.",
+    layers: [
+      { key: "secondary", label: "2차 소비자", detail: "포식 압력 증가", width: 48, count: "증가" },
+      { key: "primary", label: "1차 소비자", detail: "아직 과밀", width: 86, count: "과밀" },
+      { key: "producer", label: "생산자", detail: "섭식 피해", width: 44, count: "감소" }
+    ]
+  },
+  step2: {
+    caption: "Step 2: 증가한 2차 소비자의 포식으로 1차 소비자가 감소하며 피라미드가 다시 좁아집니다.",
+    layers: [
+      { key: "secondary", label: "2차 소비자", detail: "포식자 안정", width: 42, count: "높음" },
+      { key: "primary", label: "1차 소비자", detail: "개체수 조절", width: 58, count: "감소" },
+      { key: "producer", label: "생산자", detail: "회복 준비", width: 64, count: "회복 중" }
+    ]
+  },
+  step3: {
+    caption: "Step 3: 생산자가 늘고 2차 소비자는 줄어들어 안정적인 정삼각형 비율의 생태 피라미드가 회복됩니다.",
+    layers: [
+      { key: "secondary", label: "2차 소비자", detail: "상위 소비자", width: 30, count: "안정" },
+      { key: "primary", label: "1차 소비자", detail: "1차 소비자", width: 58, count: "안정" },
+      { key: "producer", label: "생산자", detail: "생산자 기반", width: 88, count: "풍부" }
+    ]
+  }
+};
 const growSequence = [
   {
     key: "microbe",
@@ -277,8 +316,8 @@ const stageCopy = [
     description: "하단의 6개 생태 분류군을 6턴 동안 자유롭게 배치해 보세요. 생물들은 올바른 천이 순서와 선행 조건이 충족될 때만 상호작용하며 완벽한 생태계로 성장합니다."
   },
   {
-    title: "STAGE 3 - 생태 피라미드",
-    description: "영양 단계별 에너지 법칙에 맞게 블록을 아래에서 위로 쌓아 올리세요."
+    title: "STAGE 3 - 생태 피라미드 밸런스 퍼즐",
+    description: "돌발 상황! 경포습지에 1차 소비자가 일시적으로 급증하여 생태계 평형이 무너졌습니다. 자연의 회복 순서에 맞게 카드를 배열해 피라미드를 복구하세요."
   }
 ];
 
@@ -299,6 +338,9 @@ const state = {
   activeDrag: null,
   suppressPointerClick: false,
   pyramidPlacements: [],
+  shuffledPyramidCards: [],
+  pyramidPhase: "crisis",
+  pyramidAnimating: false,
   growPlacements: [],
   shuffledGrowItems: [],
   growComplete: false,
@@ -336,6 +378,9 @@ const elements = {
   skipStage: document.querySelector("#skip-stage"),
   pyramidStack: document.querySelector("#pyramid-stack"),
   pyramidBank: document.querySelector("#pyramid-bank"),
+  pyramidCardBank: document.querySelector("#pyramid-card-bank"),
+  pyramidStepCaption: document.querySelector("#pyramid-step-caption"),
+  pyramidPopup: document.querySelector("#pyramid-popup"),
   resetPyramid: document.querySelector("#reset-pyramid"),
   wetlandCanvas: document.querySelector("#wetland-canvas"),
   growTurn: document.querySelector("#grow-turn"),
@@ -415,7 +460,7 @@ function beginGame(role) {
   state.shuffledRightItems = shuffle(rightFoodItems);
   state.activeDrag = null;
   state.suppressPointerClick = false;
-  state.pyramidPlacements = [];
+  resetPyramidProgress();
   resetGrowProgress();
   elements.roleBadge.textContent = role.badge;
   showScreen("game");
@@ -1112,49 +1157,147 @@ function resetTraceStage(message) {
   showToast(message, false);
 }
 
+function resetPyramidProgress() {
+  state.pyramidPlacements = [];
+  state.shuffledPyramidCards = shuffle(recoveryCards);
+  state.pyramidPhase = "crisis";
+  state.pyramidAnimating = false;
+}
+
 function renderPyramid() {
   elements.nextNode.textContent = "-";
-  elements.pyramidStack.innerHTML = "";
-  pyramidOrder.forEach((label, index) => {
-    const block = document.createElement("div");
-    block.className = "pyramid-slot";
-    block.textContent = state.pyramidPlacements[index] || `${index + 1}층`;
-    if (state.pyramidPlacements[index]) block.classList.add("is-filled");
-    elements.pyramidStack.prepend(block);
-  });
+  renderPyramidVisual();
+  renderRecoverySlots();
+  hidePyramidPopup();
+}
 
-  elements.pyramidBank.innerHTML = "";
-  const remaining = pyramidOrder.filter((label) => !state.pyramidPlacements.includes(label));
-  shuffle(remaining).forEach((label) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "pyramid-card";
-    button.textContent = label;
-    button.addEventListener("click", () => choosePyramidBlock(label));
-    elements.pyramidBank.appendChild(button);
+function renderPyramidVisual() {
+  const phase = pyramidPhases[state.pyramidPhase] || pyramidPhases.crisis;
+  elements.pyramidStack.innerHTML = "";
+  elements.pyramidStepCaption.textContent = phase.caption;
+
+  phase.layers.forEach((layer) => {
+    const row = document.createElement("div");
+    row.className = `eco-pyramid-layer ${layer.key}`;
+    row.style.setProperty("--layer-width", `${layer.width}%`);
+    row.innerHTML = `
+      <strong>${layer.label}</strong>
+      <span>${layer.detail}</span>
+      <em>${layer.count}</em>
+    `;
+    elements.pyramidStack.appendChild(row);
   });
 }
 
-function choosePyramidBlock(label) {
-  const expected = pyramidOrder[state.pyramidPlacements.length];
-  if (label !== expected) {
+function renderRecoverySlots() {
+  elements.pyramidBank.innerHTML = "";
+  recoveryAnswer.forEach((_, index) => {
+    const slot = document.createElement("div");
+    const cardKey = state.pyramidPlacements[index];
+    slot.className = `causal-slot${cardKey ? " is-filled" : ""}`;
+    slot.dataset.slotIndex = String(index);
+    slot.textContent = cardKey ? getRecoveryCard(cardKey).text : `${index + 1}번째 회복 카드`;
+    slot.addEventListener("dragover", handlePyramidDragOver);
+    slot.addEventListener("drop", handlePyramidDrop);
+    slot.addEventListener("click", () => removePyramidCard(index));
+    elements.pyramidBank.appendChild(slot);
+  });
+
+  elements.pyramidCardBank.innerHTML = "";
+  const usedKeys = new Set(state.pyramidPlacements.filter(Boolean));
+  state.shuffledPyramidCards
+    .filter((card) => !usedKeys.has(card.key))
+    .forEach((card) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "causal-card";
+      button.draggable = !state.pyramidAnimating;
+      button.dataset.cardKey = card.key;
+      button.innerHTML = `<span>${card.key} 카드</span>${card.text}`;
+      button.addEventListener("dragstart", handlePyramidDragStart);
+      button.addEventListener("click", () => placePyramidCard(card.key));
+      elements.pyramidCardBank.appendChild(button);
+    });
+}
+
+function getRecoveryCard(key) {
+  return recoveryCards.find((card) => card.key === key);
+}
+
+function placePyramidCard(cardKey, slotIndex = state.pyramidPlacements.findIndex((key) => !key)) {
+  if (state.pyramidAnimating || state.pyramidPlacements.includes(cardKey)) return;
+  const targetIndex = slotIndex === -1 ? state.pyramidPlacements.length : slotIndex;
+  if (targetIndex < 0 || targetIndex >= recoveryAnswer.length) return;
+  state.pyramidPlacements[targetIndex] = cardKey;
+  renderRecoverySlots();
+  if (state.pyramidPlacements.filter(Boolean).length === recoveryAnswer.length) evaluatePyramidSequence();
+}
+
+function removePyramidCard(index) {
+  if (state.pyramidAnimating || !state.pyramidPlacements[index]) return;
+  state.pyramidPlacements[index] = undefined;
+  renderRecoverySlots();
+}
+
+function handlePyramidDragStart(event) {
+  event.dataTransfer.setData("text/plain", event.currentTarget.dataset.cardKey);
+}
+
+function handlePyramidDragOver(event) {
+  event.preventDefault();
+}
+
+function handlePyramidDrop(event) {
+  event.preventDefault();
+  const slotIndex = Number(event.currentTarget.dataset.slotIndex);
+  const cardKey = event.dataTransfer.getData("text/plain");
+  if (!cardKey || state.pyramidPlacements[slotIndex]) return;
+  placePyramidCard(cardKey, slotIndex);
+}
+
+function evaluatePyramidSequence() {
+  const isCorrect = recoveryAnswer.every((key, index) => state.pyramidPlacements[index] === key);
+  if (!isCorrect) {
+    showPyramidPopup("생태계 회복 순서가 맞지 않습니다.", false);
     state.pyramidPlacements = [];
-    renderPyramid();
-    showToast("피라미드가 무너졌습니다. 에너지가 가장 큰 단계부터 다시 쌓으세요.", false);
+    window.setTimeout(() => {
+      state.shuffledPyramidCards = shuffle(recoveryCards);
+      renderPyramid();
+    }, 900);
     return;
   }
 
-  state.pyramidPlacements.push(label);
-  renderPyramid();
-  showToast(`${label} 배치 성공`, true);
+  state.pyramidAnimating = true;
+  showPyramidPopup("정답입니다! 생태 피라미드가 자연의 회복 단계에 따라 복구됩니다.", true);
+  animatePyramidRecovery();
+}
 
-  if (state.pyramidPlacements.length === pyramidOrder.length) {
-    window.setTimeout(showResult, 300);
-  }
+function animatePyramidRecovery() {
+  ["step1", "step2", "step3"].forEach((phase, index) => {
+    window.setTimeout(() => {
+      state.pyramidPhase = phase;
+      renderPyramidVisual();
+      if (phase === "step3") {
+        showPyramidPopup("생태계 평형이 완벽하게 회복되었습니다! 모든 방탈출 미션 성공!", true);
+        window.setTimeout(showResult, 1800);
+      }
+    }, (index + 1) * 900);
+  });
+}
+
+function showPyramidPopup(message, success) {
+  elements.pyramidPopup.textContent = message;
+  elements.pyramidPopup.classList.toggle("is-success", success);
+  elements.pyramidPopup.classList.remove("is-hidden");
+  showToast(message, success);
+}
+
+function hidePyramidPopup() {
+  elements.pyramidPopup.classList.add("is-hidden");
 }
 
 function resetPyramid() {
-  state.pyramidPlacements = [];
+  resetPyramidProgress();
   renderPyramid();
 }
 
@@ -1184,7 +1327,8 @@ function skipCurrentStage() {
     showToast("STAGE 2를 건너뛰었습니다.", true);
     goToStage(2);
   } else if (state.stageIndex === 2) {
-    state.pyramidPlacements = [...pyramidOrder];
+    state.pyramidPlacements = [...recoveryAnswer];
+    state.pyramidPhase = "step3";
     showToast("STAGE 3을 건너뛰었습니다.", true);
     showResult();
   }
