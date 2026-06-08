@@ -191,6 +191,7 @@ const elements = {
   boardWrap: document.querySelector("#board-wrap"),
   traceLayer: document.querySelector("#trace-layer"),
   enterStageThree: document.querySelector("#enter-stage-three"),
+  skipStage: document.querySelector("#skip-stage"),
   pyramidStack: document.querySelector("#pyramid-stack"),
   pyramidBank: document.querySelector("#pyramid-bank"),
   resetPyramid: document.querySelector("#reset-pyramid"),
@@ -238,6 +239,7 @@ function renderStage() {
   elements.stageTwo.classList.toggle("is-hidden", state.stageIndex !== 1);
   elements.stageThree.classList.toggle("is-hidden", state.stageIndex !== 2);
   elements.nextNodeWrap.classList.toggle("is-hidden", state.stageIndex !== 1);
+  elements.skipStage.textContent = state.stageIndex < 2 ? `STAGE ${state.stageIndex + 1} 스킵` : "결과 화면으로 스킵";
   if (state.stageIndex !== 1) {
     elements.boardWrap.classList.remove("is-complete");
     elements.enterStageThree.classList.add("is-hidden");
@@ -436,6 +438,24 @@ function goToStage(stageIndex) {
   renderStage();
 }
 
+function skipCurrentStage() {
+  if (state.stageIndex === 0) {
+    state.selectedFoodNode = null;
+    showToast("STAGE 1을 스킵하고 인과관계 궤적으로 이동합니다.", true);
+    goToStage(1);
+    return;
+  }
+
+  if (state.stageIndex === 1) {
+    resetTraceProgress();
+    showToast("STAGE 2를 스킵하고 생태 피라미드로 이동합니다.", true);
+    goToStage(2);
+    return;
+  }
+
+  showToast("STAGE 3을 스킵하고 결과 화면으로 이동합니다.", true);
+  window.setTimeout(showResult, 250);
+}
 
 function getBoardSize(role = state.role) {
   return role?.boardSize || DEFAULT_BOARD_SIZE;
@@ -784,6 +804,7 @@ document.querySelectorAll("[data-move]").forEach((button) => {
 
 elements.checkFoodWeb.addEventListener("click", checkFoodWeb);
 elements.resetFoodWeb.addEventListener("click", resetFoodWeb);
+elements.skipStage.addEventListener("click", skipCurrentStage);
 elements.resetPyramid.addEventListener("click", resetPyramid);
 elements.enterStageThree.addEventListener("click", () => {
   if (!state.traceComplete) return;
