@@ -110,7 +110,7 @@ const roleData = {
 const stageCopy = [
   {
     title: "STAGE 1 - 먹이그물 잇기",
-    description: "경포가시연습지 실제 생물 노드를 선택해 먹히는 생물 ➜ 먹는 생물 방향으로 먹이그물과 분해자 순환 화살표를 모두 연결하세요."
+    description: "경포가시연습지 생물들을 터치해 [먹히는 생물 ➔ 먹는 생물] 방향으로 연결하고, 죽은 사체는 [미생물]로 보내 생태계를 부활시키세요!"
   },
   {
     title: "STAGE 2 - 인과관계 궤적",
@@ -291,7 +291,7 @@ function renderFoodWeb() {
   summary.className = "food-web-summary";
   summary.innerHTML = `
     <strong>연결 현황 ${completeCount} / ${totalCount}</strong>
-    <span>카드를 두 번 선택해 <b>먹히는 생물 ➜ 먹는 생물</b> 화살표를 만드세요. 분해자 연결은 지정된 4개 생물만 미생물(메탄생성균)로 이어집니다.</span>
+    <span>카드를 차례대로 두 번 선택해 먹이 사슬을 만드세요. (예: 가시연 클릭 ➔ 벼메뚜기 클릭). 남은 사체와 배설물은 [미생물]로 연결해 청소해 줍니다.</span>
   `;
   elements.dropLane.appendChild(summary);
 
