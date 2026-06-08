@@ -1,4 +1,5 @@
-const BOARD_SIZE = 11;
+const DEFAULT_BOARD_SIZE = 11;
+const TRACE_START_POINT = { x: 0, y: 10 };
 const foodWebGroups = [
   {
     name: "생산자",
@@ -56,15 +57,17 @@ const roleData = {
     roleName: "식물·곤충 전문가",
     badge: "식물·곤충",
     resultLetters: ["교"],
+    boardSize: 5,
+    start: { x: 2, y: 0 },
     path: [
-      { x: 1, y: 9, label: "가시연 부활" },
-      { x: 3, y: 8, label: "연테두리진딧물 증가" },
-      { x: 5, y: 6, label: "실잠자리 성충 증가" },
-      { x: 7, y: 4, label: "물장군 사냥 활성화" }
+      { x: 1, y: 1, label: "가시연 부활", teleportTo: { x: 3, y: 1 } },
+      { x: 2, y: 2, label: "연테두리진딧물 증가", teleportTo: { x: 0, y: 3 } },
+      { x: 4, y: 3, label: "실잠자리 성충 증가", teleportTo: { x: 2, y: 2 } },
+      { x: 2, y: 4, label: "물장군 사냥 활성화" }
     ],
     traps: [
-      { x: 2, y: 7, label: "식물 즙액 감소" },
-      { x: 6, y: 7, label: "실잠자리 유충 전멸" }
+      { x: 0, y: 1, label: "식물 즙액 감소" },
+      { x: 4, y: 1, label: "실잠자리 유충 전멸" }
     ],
     hint: "1. 당신이 미로에서 완성한 글자 [ 교 ]는 최종 장소 이름의 '첫 번째 글자'입니다.\n2. [함정 해제 단서]: 조류·포유류 대원의 화면에 글자가 두 개 떠서 혼란을 겪고 있습니다. 조류·포유류 대원에게 '황소개구리(교란종) 경로는 가짜이며, 오직 잉어를 주식으로 삼는 수중생활 포유류(수달)의 정답 경로로 만들어진 글자만 진짜'라고 알려주십시오!"
   },
@@ -125,9 +128,12 @@ const stageCopy = [
 const state = {
   role: null,
   stageIndex: 0,
-  player: { x: 0, y: 10 },
+  player: { ...TRACE_START_POINT },
   nextIndex: 0,
   tracePoints: [],
+  traceSegments: [],
+  strokeStart: { ...TRACE_START_POINT },
+  traceComplete: false,
   foodConnections: [],
   selectedFoodNode: null,
   pyramidPlacements: []
@@ -154,7 +160,9 @@ const elements = {
   checkFoodWeb: document.querySelector("#check-food-web"),
   resetFoodWeb: document.querySelector("#reset-food-web"),
   board: document.querySelector("#game-board"),
+  boardWrap: document.querySelector("#board-wrap"),
   traceLayer: document.querySelector("#trace-layer"),
+  enterStageThree: document.querySelector("#enter-stage-three"),
   pyramidStack: document.querySelector("#pyramid-stack"),
   pyramidBank: document.querySelector("#pyramid-bank"),
   resetPyramid: document.querySelector("#reset-pyramid"),
@@ -179,9 +187,12 @@ function showScreen(screenName) {
 function beginGame(role) {
   state.role = role;
   state.stageIndex = 0;
-  state.player = { x: 0, y: 10 };
+  state.player = getTraceStart(role);
   state.nextIndex = 0;
   state.tracePoints = [cellCenter(state.player)];
+  state.traceSegments = [];
+  state.strokeStart = { ...state.player };
+  state.traceComplete = false;
   state.foodConnections = [];
   state.selectedFoodNode = null;
   state.pyramidPlacements = [];
@@ -199,6 +210,11 @@ function renderStage() {
   elements.stageTwo.classList.toggle("is-hidden", state.stageIndex !== 1);
   elements.stageThree.classList.toggle("is-hidden", state.stageIndex !== 2);
   elements.nextNodeWrap.classList.toggle("is-hidden", state.stageIndex !== 1);
+  if (state.stageIndex !== 1) {
+    elements.boardWrap.classList.remove("is-complete");
+    elements.enterStageThree.classList.add("is-hidden");
+    elements.enterStageThree.disabled = true;
+  }
 
   if (state.stageIndex === 0) renderFoodWeb();
   if (state.stageIndex === 1) renderTraceStage();
@@ -387,10 +403,27 @@ function goToStage(stageIndex) {
   state.stageIndex = stageIndex;
   state.nextIndex = 0;
   if (stageIndex === 1) {
-    state.player = { x: 0, y: 10 };
-    state.tracePoints = [cellCenter(state.player)];
+    resetTraceProgress();
   }
   renderStage();
+}
+
+
+function getBoardSize(role = state.role) {
+  return role?.boardSize || DEFAULT_BOARD_SIZE;
+}
+
+function getTraceStart(role = state.role) {
+  return { ...(role?.start || TRACE_START_POINT) };
+}
+
+function resetTraceProgress() {
+  state.player = getTraceStart();
+  state.nextIndex = 0;
+  state.tracePoints = [cellCenter(state.player)];
+  state.traceSegments = [];
+  state.strokeStart = { ...state.player };
+  state.traceComplete = false;
 }
 
 function cellKey(point) {
@@ -403,15 +436,23 @@ function cellCenter(point) {
 
 function renderTraceStage() {
   const role = state.role;
+  const boardSize = getBoardSize(role);
+  const start = getTraceStart(role);
   const pathByCell = new Map(role.path.map((node, index) => [cellKey(node), { ...node, index, kind: "node" }]));
   const trapByCell = new Map(role.traps.map((trap) => [cellKey(trap), { ...trap, kind: "trap" }]));
   const fakeByCell = new Map((role.fakePath || []).map((node, index) => [cellKey(node), { ...node, index, kind: "fake" }]));
 
-  elements.nextNode.textContent = role.path[state.nextIndex]?.label || "생태 피라미드";
+  elements.nextNode.textContent = role.path[state.nextIndex]?.label || "STAGE 3 진입 가능";
   elements.board.innerHTML = "";
+  elements.board.style.setProperty("--board-size", boardSize);
+  elements.boardWrap.style.setProperty("--board-size", boardSize);
+  elements.boardWrap.classList.toggle("is-complete", state.traceComplete);
+  elements.enterStageThree.textContent = `완성된 '${role.resultLetters.join(" / ")}' 확인 완료 - STAGE 3 진입`;
+  elements.enterStageThree.classList.toggle("is-hidden", !state.traceComplete);
+  elements.enterStageThree.disabled = !state.traceComplete;
 
-  for (let y = 0; y < BOARD_SIZE; y += 1) {
-    for (let x = 0; x < BOARD_SIZE; x += 1) {
+  for (let y = 0; y < boardSize; y += 1) {
+    for (let x = 0; x < boardSize; x += 1) {
       const key = `${x},${y}`;
       const pathNode = pathByCell.get(key);
       const fakeNode = fakeByCell.get(key);
@@ -419,7 +460,7 @@ function renderTraceStage() {
       const cell = document.createElement("div");
       cell.className = "cell";
 
-      if (x === 0 && y === 10) {
+      if (x === start.x && y === start.y) {
         cell.classList.add("start-cell");
         cell.textContent = "출발";
       }
@@ -450,8 +491,23 @@ function renderTraceStage() {
 }
 
 function drawTrace() {
-  elements.traceLayer.setAttribute("viewBox", `0 0 ${BOARD_SIZE} ${BOARD_SIZE}`);
+  const boardSize = getBoardSize();
+  elements.traceLayer.setAttribute("viewBox", `0 0 ${boardSize} ${boardSize}`);
   elements.traceLayer.innerHTML = "";
+
+  if (state.traceSegments.length > 0) {
+    state.traceSegments.forEach((segment) => {
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", segment.from.x);
+      line.setAttribute("y1", segment.from.y);
+      line.setAttribute("x2", segment.to.x);
+      line.setAttribute("y2", segment.to.y);
+      line.setAttribute("vector-effect", "non-scaling-stroke");
+      elements.traceLayer.appendChild(line);
+    });
+    return;
+  }
+
   if (state.tracePoints.length < 2) return;
   const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
   polyline.setAttribute("points", state.tracePoints.map((point) => `${point.x},${point.y}`).join(" "));
@@ -460,7 +516,7 @@ function drawTrace() {
 }
 
 function movePlayer(direction) {
-  if (state.stageIndex !== 1) return;
+  if (state.stageIndex !== 1 || state.traceComplete) return;
   const deltas = {
     up: { x: 0, y: -1 },
     down: { x: 0, y: 1 },
@@ -470,8 +526,9 @@ function movePlayer(direction) {
   const delta = deltas[direction];
   if (!delta) return;
 
+  const boardSize = getBoardSize();
   const nextPosition = { x: state.player.x + delta.x, y: state.player.y + delta.y };
-  if (nextPosition.x < 0 || nextPosition.y < 0 || nextPosition.x >= BOARD_SIZE || nextPosition.y >= BOARD_SIZE) {
+  if (nextPosition.x < 0 || nextPosition.y < 0 || nextPosition.x >= boardSize || nextPosition.y >= boardSize) {
     showToast("그리드 밖으로는 이동할 수 없습니다.", false);
     return;
   }
@@ -485,30 +542,41 @@ function evaluateTraceCell() {
   const role = state.role;
   const playerKey = cellKey(state.player);
   const wrongNode = [...role.traps, ...(role.fakePath || [])].find((node) => cellKey(node) === playerKey);
+  const touchedPathNode = role.path.find((node) => cellKey(node) === playerKey);
   const nextNode = role.path[state.nextIndex];
 
-  if (wrongNode) {
-    resetTraceStage(`오답·교란 노드 '${wrongNode.label}'에 닿았습니다. STAGE 2를 출발점에서 다시 시작합니다.`);
+  if (wrongNode || (touchedPathNode && touchedPathNode !== nextNode)) {
+    resetTraceStage("생태계 인과관계가 맞지 않습니다!");
     return;
   }
 
   if (!nextNode || cellKey(nextNode) !== playerKey) return;
+
   state.nextIndex += 1;
+  state.traceSegments.push({
+    from: cellCenter(state.strokeStart),
+    to: cellCenter(nextNode)
+  });
   state.tracePoints.push(cellCenter(nextNode));
   showToast(`정답 인과관계 확인: ${nextNode.label}`, true);
 
   if (state.nextIndex >= role.path.length) {
-    window.setTimeout(() => {
-      showToast("인과관계 궤적 완성! 생태 피라미드로 이동합니다.", true);
-      goToStage(2);
-    }, 250);
+    state.traceComplete = true;
+    showToast(`인과관계 궤적 완성! 완성된 '${role.resultLetters.join(" / ")}' 글자를 확인하고 STAGE 3로 이동하세요.`, true);
+    return;
+  }
+
+  if (nextNode.teleportTo) {
+    state.player = { ...nextNode.teleportTo };
+    state.strokeStart = { ...nextNode.teleportTo };
+    showToast(`${nextNode.label} 확인! 다음 획 시작 좌표로 순간이동했습니다.`, true);
+  } else {
+    state.strokeStart = { ...nextNode };
   }
 }
 
 function resetTraceStage(message) {
-  state.player = { x: 0, y: 10 };
-  state.nextIndex = 0;
-  state.tracePoints = [cellCenter(state.player)];
+  resetTraceProgress();
   showToast(message, false);
 }
 
@@ -611,6 +679,11 @@ document.querySelectorAll("[data-move]").forEach((button) => {
 elements.checkFoodWeb.addEventListener("click", checkFoodWeb);
 elements.resetFoodWeb.addEventListener("click", resetFoodWeb);
 elements.resetPyramid.addEventListener("click", resetPyramid);
+elements.enterStageThree.addEventListener("click", () => {
+  if (!state.traceComplete) return;
+  showToast("생태 피라미드로 이동합니다.", true);
+  goToStage(2);
+});
 elements.restartButton.addEventListener("click", () => {
   elements.passcodeInput.value = "";
   showScreen("start");

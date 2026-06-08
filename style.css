@@ -5,7 +5,7 @@
   --muted: #5c7169;
   --primary: #3f8f5d;
   --primary-dark: #236646;
-  --accent: #f7b538;
+  --accent: #ff263b;
   --selected: #ffb02e;
   --completed: #8de6b0;
   --danger: #d1495b;
@@ -338,7 +338,7 @@ h1 {
 
 .board-wrap {
   position: relative;
-  width: calc(var(--cell) * 11);
+  width: calc(var(--cell) * var(--board-size, 11));
   max-width: 100%;
   margin: 0 auto;
   border: 10px solid rgba(246, 252, 240, 0.88);
@@ -351,8 +351,8 @@ h1 {
 
 .game-board {
   display: grid;
-  grid-template-columns: repeat(11, var(--cell));
-  grid-template-rows: repeat(11, var(--cell));
+  grid-template-columns: repeat(var(--board-size, 11), var(--cell));
+  grid-template-rows: repeat(var(--board-size, 11), var(--cell));
 }
 
 .cell {
@@ -435,13 +435,36 @@ h1 {
   pointer-events: none;
 }
 
-.trace-layer polyline {
+.trace-layer polyline,
+.trace-layer line {
   fill: none;
   stroke: var(--accent);
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 8;
-  filter: drop-shadow(0 2px 4px rgba(65, 45, 0, 0.3));
+  stroke-width: 12;
+  filter: drop-shadow(0 0 6px rgba(255, 38, 59, 0.58));
+}
+
+.board-wrap.is-complete {
+  transform: scale(0.88);
+  transform-origin: center;
+  transition: transform 650ms ease, box-shadow 650ms ease;
+  box-shadow: 0 26px 90px rgba(255, 38, 59, 0.34);
+}
+
+.stage-three-entry {
+  justify-self: center;
+  padding: 14px 22px;
+  border-radius: 999px;
+  color: white;
+  background: linear-gradient(135deg, var(--danger), #ff7a1a);
+  font-weight: 1000;
+  box-shadow: 0 14px 32px rgba(209, 73, 91, 0.34);
+}
+
+.stage-three-entry:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .controls-help {
