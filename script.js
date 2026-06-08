@@ -1,5 +1,5 @@
 const DEFAULT_BOARD_SIZE = 11;
-const TRACE_START_POINT = { x: 0, y: 10 };
+const TRACE_START_POINT = { x: 5, y: 1 };
 const foodWebGroups = [
   {
     name: "생산자",
@@ -50,7 +50,7 @@ const decomposerSourceNodes = ["가시연", "벼메뚜기", "가물치", "수달
 
 const plantInsectTracePath = [
   {
-    x: 3,
+    x: 5,
     y: 2,
     label: "가시연 부활"
   },
@@ -58,24 +58,24 @@ const plantInsectTracePath = [
     x: 7,
     y: 2,
     label: "연테두리진딧물 증가",
-    teleportTo: { x: 3, y: 4 },
-    assistSegments: [
-      { from: { x: 7, y: 2 }, to: { x: 7, y: 3 } }
-    ]
+    teleportTo: { x: 3, y: 4 }
   },
   {
     x: 3,
     y: 5,
     label: "실잠자리 성충 증가",
-    teleportTo: { x: 1, y: 7 },
-    assistSegments: [
-      { from: { x: 7, y: 4 }, to: { x: 7, y: 5 } }
-    ]
+    teleportTo: { x: 7, y: 4 }
+  },
+  {
+    x: 7,
+    y: 5,
+    label: "물장군 사냥 활성화",
+    teleportTo: { x: 1, y: 7 }
   },
   {
     x: 9,
     y: 7,
-    label: "물장군 사냥 활성화"
+    label: "생태계 회복 완료"
   }
 ];
 
@@ -89,15 +89,17 @@ const roleData = {
     badge: "식물·곤충",
     resultLetters: ["교"],
     boardSize: 11,
-    start: { x: 3, y: 2 },
-    initialNextIndex: 1,
+    start: { x: 5, y: 1 },
+    initialNextIndex: 0,
     strictTrace: true,
     path: plantInsectTracePath,
     traps: [
       { x: 0, y: 0, label: "식물 즙액 감소" },
       { x: 10, y: 0, label: "진딧물 급감" },
       { x: 0, y: 10, label: "실잠자리 유충 전멸" },
-      { x: 10, y: 10, label: "물장군 사냥 중단" }
+      { x: 10, y: 10, label: "물장군 사냥 중단" },
+      { x: 0, y: 5, label: "습지 먹이원 단절" },
+      { x: 10, y: 5, label: "천적 균형 붕괴" }
     ],
     hint: "1. 당신이 미로에서 완성한 글자 [ 교 ]는 최종 장소 이름의 '첫 번째 글자'입니다.\n2. [함정 해제 단서]: 조류·포유류 대원의 화면에 글자가 두 개 떠서 혼란을 겪고 있습니다. 조류·포유류 대원에게 '황소개구리(교란종) 경로는 가짜이며, 오직 잉어를 주식으로 삼는 수중생활 포유류(수달)의 정답 경로로 만들어진 글자만 진짜'라고 알려주십시오!"
   },
@@ -147,7 +149,7 @@ const stageCopy = [
   },
   {
     title: "STAGE 2 - 인과관계 궤적",
-    description: "캐릭터를 상/하/좌/우로 움직여 활동지에서 도출한 생태학적 연쇄 반응 노드를 순서대로 밟으세요. 오답 노드에 닿으면 이 스테이지가 리셋됩니다."
+    description: "캐릭터를 상/하/좌/우로 움직여 정답 노드를 순서대로 밟으세요. 순간이동 구간에는 선이 그려지지 않고, 플레이어가 직접 이동한 붉은 궤적만 남아 한글 '교'를 완성합니다."
   },
   {
     title: "STAGE 3 - 생태 피라미드",
@@ -192,6 +194,7 @@ const elements = {
   board: document.querySelector("#game-board"),
   boardWrap: document.querySelector("#board-wrap"),
   traceLayer: document.querySelector("#trace-layer"),
+  stageClearPopup: document.querySelector("#stage-clear-popup"),
   enterStageThree: document.querySelector("#enter-stage-three"),
   skipStage: document.querySelector("#skip-stage"),
   pyramidStack: document.querySelector("#pyramid-stack"),
@@ -244,7 +247,7 @@ function renderStage() {
   elements.skipStage.textContent = state.stageIndex < 2 ? `STAGE ${state.stageIndex + 1} 스킵` : "결과 화면으로 스킵";
   if (state.stageIndex !== 1) {
     elements.boardWrap.classList.remove("is-complete");
-    elements.enterStageThree.classList.add("is-hidden");
+    elements.stageClearPopup.classList.add("is-hidden");
     elements.enterStageThree.disabled = true;
   }
 
@@ -502,7 +505,7 @@ function renderTraceStage() {
   elements.boardWrap.style.setProperty("--board-size", boardSize);
   elements.boardWrap.classList.toggle("is-complete", state.traceComplete);
   elements.enterStageThree.textContent = `완성된 '${role.resultLetters.join(" / ")}' 확인 완료 - STAGE 3 진입`;
-  elements.enterStageThree.classList.toggle("is-hidden", !state.traceComplete);
+  elements.stageClearPopup.classList.toggle("is-hidden", !state.traceComplete);
   elements.enterStageThree.disabled = !state.traceComplete;
 
   for (let y = 0; y < boardSize; y += 1) {
@@ -556,32 +559,16 @@ function drawTrace() {
     line.setAttribute("x2", segment.to.x);
     line.setAttribute("y2", segment.to.y);
     line.setAttribute("vector-effect", "non-scaling-stroke");
-    const traceClass = segment.kind === "system" ? "system-trace" : segment.kind === "assist" ? "assist-trace" : "player-trace";
-    line.classList.add(traceClass);
+    line.classList.add("player-trace");
     elements.traceLayer.appendChild(line);
   });
 }
 
-function addTraceSegment(from, to, kind = "player") {
+function addTraceSegment(from, to) {
   state.traceSegments.push({
     from: cellCenter(from),
-    to: cellCenter(to),
-    kind
+    to: cellCenter(to)
   });
-}
-
-function addCompletionSegments(node) {
-  (node.completionSegments || []).forEach((segment) => {
-    addTraceSegment(segment.from, segment.to, "system");
-  });
-
-  (node.assistSegments || []).forEach((segment) => {
-    addTraceSegment(segment.from, segment.to, "assist");
-  });
-}
-
-function shouldDrawRealtimeSegment(node) {
-  return node?.traceMode !== "autoOnReach" && node?.traceMode !== "teleportOnly";
 }
 
 function getExpectedStrokeStart(role = state.role) {
@@ -638,7 +625,7 @@ function movePlayer(direction) {
   const nextNode = state.role.path[state.nextIndex];
   state.player = nextPosition;
   const isValidStroke = !state.role.strictTrace || isStepTowardNextNode(currentPosition, nextPosition);
-  if (isValidStroke && shouldDrawRealtimeSegment(nextNode)) addTraceSegment(currentPosition, nextPosition, "player");
+  if (isValidStroke) addTraceSegment(currentPosition, nextPosition);
   evaluateTraceCell(isValidStroke);
   renderTraceStage();
 }
@@ -663,7 +650,6 @@ function evaluateTraceCell(isValidStroke) {
   if (!nextNode || cellKey(nextNode) !== playerKey) return;
 
   state.nextIndex += 1;
-  addCompletionSegments(nextNode);
   showToast(`정답 인과관계 확인: ${nextNode.label}`, true);
 
   if (nextNode.teleportTo) {
@@ -692,7 +678,6 @@ function completeTeleportArrivalNodes() {
 
   while (nextNode?.completeOnTeleport && cellKey(nextNode) === cellKey(state.player)) {
     state.nextIndex += 1;
-    addCompletionSegments(nextNode);
     state.strokeStart = { x: nextNode.x, y: nextNode.y };
     nextNode = state.role.path[state.nextIndex];
   }
@@ -700,7 +685,7 @@ function completeTeleportArrivalNodes() {
 
 function completeTraceStage() {
   state.traceComplete = true;
-  showToast("최종 '교' 자 완성! 확인 버튼을 눌러 STAGE 3로 이동하세요.", true);
+  showToast("STAGE 2 CLEAR! 최종 '교' 자 완성! STAGE 3 진입 버튼이 활성화되었습니다.", true);
 }
 
 function resetTraceStage(message) {
