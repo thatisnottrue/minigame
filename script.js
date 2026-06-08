@@ -65,20 +65,33 @@ const roleData = {
         x: 5,
         y: 2,
         label: "가시연 부활",
-        teleportTo: { x: 1, y: 6 },
-        assistSegments: [
-          { from: { x: 5, y: 2 }, to: { x: 3, y: 4 } },
-          { from: { x: 5, y: 2 }, to: { x: 7, y: 4 } }
+        teleportTo: { x: 1, y: 5 },
+        traceMode: "autoOnReach",
+        completionSegments: [
+          { from: { x: 5, y: 1 }, to: { x: 5, y: 2 } },
+          { from: { x: 3, y: 2 }, to: { x: 7, y: 2 } }
         ]
       },
-      { x: 9, y: 6, label: "연테두리진딧물 증가", teleportTo: { x: 5, y: 6 } },
-      { x: 5, y: 10, label: "실잠자리 성충 증가", teleportTo: { x: 3, y: 9 } },
       {
-        x: 2,
-        y: 10,
+        x: 1,
+        y: 5,
+        label: "연테두리진딧물 증가",
+        completeOnTeleport: true,
+        traceMode: "teleportOnly"
+      },
+      {
+        x: 9,
+        y: 5,
+        label: "실잠자리 성충 증가",
+        teleportTo: { x: 5, y: 5 }
+      },
+      {
+        x: 5,
+        y: 9,
         label: "물장군 사냥 활성화",
-        assistSegments: [
-          { from: { x: 7, y: 9 }, to: { x: 8, y: 10 } }
+        completionSegments: [
+          { from: { x: 5, y: 7 }, to: { x: 3, y: 9 } },
+          { from: { x: 5, y: 7 }, to: { x: 7, y: 9 } }
         ]
       }
     ],
@@ -134,7 +147,7 @@ const stageCopy = [
   },
   {
     title: "STAGE 2 - 인과관계 궤적",
-    description: "캐릭터를 움직여 활동지에서 도출한 생태학적 연쇄 반응 노드를 순서대로 밟으세요. 붉은 선은 플레이어 궤적, 파란 선은 시스템 보조 획이며 오답 노드에 닿으면 모두 지워지고 출발점으로 리셋됩니다."
+    description: "캐릭터를 상/하/좌/우로 한 칸씩 움직여 정답 노드를 순서대로 밟으세요. 순간이동 구간은 선이 그려지지 않으며, '교' 자 획은 붉은 고정 좌표선으로 완성됩니다."
   },
   {
     title: "STAGE 3 - 생태 피라미드",
@@ -551,7 +564,8 @@ function drawTrace() {
     line.setAttribute("x2", segment.to.x);
     line.setAttribute("y2", segment.to.y);
     line.setAttribute("vector-effect", "non-scaling-stroke");
-    line.classList.add(segment.kind === "assist" ? "assist-trace" : "player-trace");
+    const traceClass = segment.kind === "system" ? "system-trace" : segment.kind === "assist" ? "assist-trace" : "player-trace";
+    line.classList.add(traceClass);
     elements.traceLayer.appendChild(line);
   });
 }
@@ -564,10 +578,14 @@ function addTraceSegment(from, to, kind = "player") {
   });
 }
 
-function addAssistSegments(node) {
-  (node.assistSegments || []).forEach((segment) => {
-    addTraceSegment(segment.from, segment.to, "assist");
+function addCompletionSegments(node) {
+  (node.completionSegments || node.assistSegments || []).forEach((segment) => {
+    addTraceSegment(segment.from, segment.to, "system");
   });
+}
+
+function shouldDrawRealtimeSegment(node) {
+  return node?.traceMode !== "autoOnReach" && node?.traceMode !== "teleportOnly";
 }
 
 function getExpectedStrokeStart(role = state.role) {
@@ -608,11 +626,7 @@ function movePlayer(direction) {
     up: { x: 0, y: -1 },
     down: { x: 0, y: 1 },
     left: { x: -1, y: 0 },
-    right: { x: 1, y: 0 },
-    downLeft: { x: -1, y: 1 },
-    downRight: { x: 1, y: 1 },
-    upLeft: { x: -1, y: -1 },
-    upRight: { x: 1, y: -1 }
+    right: { x: 1, y: 0 }
   };
   const delta = deltas[direction];
   if (!delta) return;
@@ -625,9 +639,10 @@ function movePlayer(direction) {
     return;
   }
 
+  const nextNode = state.role.path[state.nextIndex];
   state.player = nextPosition;
   const isValidStroke = !state.role.strictTrace || isStepTowardNextNode(currentPosition, nextPosition);
-  if (isValidStroke) addTraceSegment(currentPosition, nextPosition, "player");
+  if (isValidStroke && shouldDrawRealtimeSegment(nextNode)) addTraceSegment(currentPosition, nextPosition, "player");
   evaluateTraceCell(isValidStroke);
   renderTraceStage();
 }
@@ -640,34 +655,56 @@ function evaluateTraceCell(isValidStroke) {
   const nextNode = role.path[state.nextIndex];
 
   if (wrongNode || (touchedPathNode && touchedPathNode !== nextNode)) {
-    resetTraceStage("생태계 인과관계가 맞지 않습니다! 모든 붉은 선과 파란 선을 지우고 출발점으로 돌아갑니다.");
+    resetTraceStage("생태계 인과관계가 맞지 않습니다! 모든 '교' 자 획을 지우고 출발점으로 돌아갑니다.");
     return;
   }
 
   if (!isValidStroke) {
-    resetTraceStage("정해진 획 좌표를 벗어났습니다! 모든 붉은 선과 파란 선을 지우고 출발점으로 돌아갑니다.");
+    resetTraceStage("정해진 획 좌표를 벗어났습니다! 모든 '교' 자 획을 지우고 출발점으로 돌아갑니다.");
     return;
   }
 
   if (!nextNode || cellKey(nextNode) !== playerKey) return;
 
   state.nextIndex += 1;
-  addAssistSegments(nextNode);
+  addCompletionSegments(nextNode);
   showToast(`정답 인과관계 확인: ${nextNode.label}`, true);
-
-  if (state.nextIndex >= role.path.length) {
-    state.traceComplete = true;
-    showToast("최종 '교' 자 완성! 확인 버튼을 눌러 STAGE 3로 이동하세요.", true);
-    return;
-  }
 
   if (nextNode.teleportTo) {
     state.player = { ...nextNode.teleportTo };
     state.strokeStart = { ...nextNode.teleportTo };
+    completeTeleportArrivalNodes();
+
+    if (state.nextIndex >= role.path.length) {
+      completeTraceStage();
+      return;
+    }
+
     showToast(`${nextNode.label} 확인! 다음 획 시작 좌표로 순간이동했습니다.`, true);
-  } else {
-    state.strokeStart = { ...nextNode };
+    return;
   }
+
+  state.strokeStart = { ...nextNode };
+
+  if (state.nextIndex >= role.path.length) {
+    completeTraceStage();
+  }
+}
+
+function completeTeleportArrivalNodes() {
+  let nextNode = state.role.path[state.nextIndex];
+
+  while (nextNode?.completeOnTeleport && cellKey(nextNode) === cellKey(state.player)) {
+    state.nextIndex += 1;
+    addCompletionSegments(nextNode);
+    state.strokeStart = { x: nextNode.x, y: nextNode.y };
+    nextNode = state.role.path[state.nextIndex];
+  }
+}
+
+function completeTraceStage() {
+  state.traceComplete = true;
+  showToast("최종 '교' 자 완성! 확인 버튼을 눌러 STAGE 3로 이동하세요.", true);
 }
 
 function resetTraceStage(message) {
@@ -759,11 +796,7 @@ document.addEventListener("keydown", (event) => {
     ArrowLeft: "left",
     KeyA: "left",
     ArrowRight: "right",
-    KeyD: "right",
-    KeyQ: "upLeft",
-    KeyE: "upRight",
-    KeyZ: "downLeft",
-    KeyC: "downRight"
+    KeyD: "right"
   };
   const direction = keyMap[event.code];
   if (!direction) return;
