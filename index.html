@@ -73,7 +73,11 @@
           <span>모바일·태블릿: 아래 가상 패드</span>
           <span class="trap-note">오답 노드 또는 순서가 다른 정답 노드 충돌 시 현재 스테이지 리셋</span>
         </div>
-        <button id="enter-stage-three" type="button" class="stage-three-entry is-hidden" disabled>완성된 '교' 확인 완료 - STAGE 3 진입</button>
+        <div id="stage-clear-popup" class="stage-clear-popup is-hidden" role="dialog" aria-live="polite" aria-labelledby="stage-clear-title">
+          <h3 id="stage-clear-title">STAGE 2 CLEAR!</h3>
+          <p>플레이어의 붉은 이동 궤적만으로 한글 '교'가 완성되었습니다.</p>
+          <button id="enter-stage-three" type="button" class="stage-three-entry" disabled>완성된 '교' 확인 완료 - STAGE 3 진입</button>
+        </div>
         <div class="mobile-pad" aria-label="모바일 이동 패드">
           <button class="pad-btn pad-up" data-move="up" aria-label="위로 이동">▲</button>
           <button class="pad-btn pad-left" data-move="left" aria-label="왼쪽으로 이동">◀</button>
