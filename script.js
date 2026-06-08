@@ -74,6 +74,100 @@ const plantInsectTracePath = [
   }
 ];
 
+const microFishTracePath = [
+  { x: 3, y: 1, label: "돌말류/녹조류 광합성 활성화" },
+  { x: 5, y: 1, label: "송사리/큰가시고기 먹이 풍부" },
+  { x: 9, y: 4, label: "대형 포식자 평형 조절" },
+  { x: 7, y: 7, label: "유기물 분해 물질 순환 완료" },
+  { x: 7, y: 10, label: "학 완성" }
+];
+
+const microFishStrokePlan = [
+  {
+    from: { x: 5, y: 1 },
+    to: { x: 3, y: 1 },
+    direction: "left",
+    checkpointIndex: 0,
+    autoMove: { to: { x: 3, y: 0 } },
+    warpTo: { x: 7, y: 1 }
+  },
+  {
+    from: { x: 7, y: 1 },
+    to: { x: 5, y: 1 },
+    direction: "left",
+    checkpointIndex: 1,
+    autoMove: { to: { x: 5, y: 2 } },
+    warpTo: { x: 1, y: 4 }
+  },
+  {
+    from: { x: 1, y: 4 },
+    to: { x: 9, y: 4 },
+    direction: "right",
+    checkpointIndex: 2,
+    warpTo: { x: 5, y: 7 }
+  },
+  {
+    from: { x: 5, y: 7 },
+    to: { x: 7, y: 7 },
+    direction: "right",
+    checkpointIndex: 3
+  },
+  {
+    from: { x: 7, y: 7 },
+    to: { x: 7, y: 10 },
+    direction: "down",
+    checkpointIndex: 4,
+    completesStage: true
+  }
+];
+
+function buildDenseMicroFishTraps() {
+  const wrongLabels = [
+    "짚신벌레류 증식",
+    "짚신벌레류 먹이망 교란",
+    "짚신벌레류 산소 고갈",
+    "짚신벌레류 광합성 오판"
+  ];
+  const safeCells = new Set([
+    cellKey({ x: 5, y: 1 }),
+    cellKey({ x: 4, y: 1 }),
+    cellKey({ x: 3, y: 1 }),
+    cellKey({ x: 3, y: 0 }),
+    cellKey({ x: 7, y: 1 }),
+    cellKey({ x: 6, y: 1 }),
+    cellKey({ x: 5, y: 2 }),
+    cellKey({ x: 1, y: 4 }),
+    cellKey({ x: 2, y: 4 }),
+    cellKey({ x: 3, y: 4 }),
+    cellKey({ x: 4, y: 4 }),
+    cellKey({ x: 5, y: 4 }),
+    cellKey({ x: 6, y: 4 }),
+    cellKey({ x: 7, y: 4 }),
+    cellKey({ x: 8, y: 4 }),
+    cellKey({ x: 9, y: 4 }),
+    cellKey({ x: 5, y: 7 }),
+    cellKey({ x: 6, y: 7 }),
+    cellKey({ x: 7, y: 7 }),
+    cellKey({ x: 7, y: 8 }),
+    cellKey({ x: 7, y: 9 }),
+    cellKey({ x: 7, y: 10 })
+  ]);
+  const traps = [];
+
+  for (let y = 0; y < DEFAULT_BOARD_SIZE; y += 1) {
+    for (let x = 0; x < DEFAULT_BOARD_SIZE; x += 1) {
+      if (safeCells.has(cellKey({ x, y }))) continue;
+      traps.push({
+        x,
+        y,
+        label: wrongLabels[(x + y * DEFAULT_BOARD_SIZE) % wrongLabels.length]
+      });
+    }
+  }
+
+  return traps;
+}
+
 const foodWebAnswerEdges = buildFoodWebAnswerEdges();
 const pyramidOrder = ["생산자 1000", "1차 소비자 100", "2차 소비자 10", "최상위 소비자 1"];
 
@@ -103,39 +197,12 @@ const roleData = {
     badge: "미생물·어류",
     resultLetters: ["학"],
     boardSize: 11,
-    start: { x: 4, y: 2 },
-    path: [
-      {
-        x: 4,
-        y: 3,
-        label: "돌말류/녹조류 광합성",
-        autoSegments: [{ from: { x: 2, y: 3 }, to: { x: 6, y: 3 }, kind: "system" }]
-      },
-      {
-        x: 4,
-        y: 5,
-        label: "송사리/큰가시고기 먹이 풍부",
-        autoSegments: [{ from: { x: 2, y: 5 }, to: { x: 6, y: 5 }, kind: "system" }]
-      },
-      {
-        x: 7,
-        y: 5,
-        label: "가물치/메기 평형 조절",
-        autoSegments: [{ from: { x: 7, y: 2 }, to: { x: 7, y: 5 }, kind: "system" }]
-      },
-      {
-        x: 7,
-        y: 9,
-        label: "메탄가스 흡수 차단",
-        autoSegments: [{ from: { x: 2, y: 9 }, to: { x: 7, y: 9 }, kind: "system" }]
-      }
-    ],
-    traps: [
-      { x: 0, y: 0, label: "짚신벌레류 증식" },
-      { x: 10, y: 0, label: "짚신벌레 광합성 시작" },
-      { x: 0, y: 10, label: "미생물 군집 교란" },
-      { x: 10, y: 10, label: "어류 먹이망 단절" }
-    ],
+    start: { x: 5, y: 1 },
+    traceAlgorithm: "microFishHangul",
+    initialNextIndex: 0,
+    path: microFishTracePath,
+    strokePlan: microFishStrokePlan,
+    traps: buildDenseMicroFishTraps(),
     hint: "1. 당신이 미로에서 완성한 글자 [ 학 ]는 최종 장소 이름의 '두 번째 글자'입니다.\n2. [사용 방법]: 당신이 찾은 글자 앞뒤에 다른 대원이 찾아낸 글자를 결합해 최종 장소를 도출하십시오."
   },
   "3006": {
@@ -183,6 +250,7 @@ const state = {
   tracePoints: [],
   traceSegments: [],
   strokeStart: { ...TRACE_START_POINT },
+  strokePlanIndex: 0,
   traceComplete: false,
   foodConnections: [],
   selectedFoodNode: null,
@@ -245,6 +313,7 @@ function beginGame(role) {
   state.tracePoints = [cellCenter(state.player)];
   state.traceSegments = [];
   state.strokeStart = { ...state.player };
+  state.strokePlanIndex = 0;
   state.traceComplete = false;
   state.foodConnections = [];
   state.selectedFoodNode = null;
@@ -499,6 +568,7 @@ function resetTraceProgress() {
   state.tracePoints = [cellCenter(state.player)];
   state.traceSegments = [];
   state.strokeStart = { ...state.player };
+  state.strokePlanIndex = 0;
   state.traceComplete = false;
 }
 
@@ -514,6 +584,7 @@ function renderTraceStage() {
   const role = state.role;
   const boardSize = getBoardSize(role);
   const start = getTraceStart(role);
+  const usesPrecisionStroke = role.traceAlgorithm === "microFishHangul";
   const pathByCell = new Map(role.path.map((node, index) => [cellKey(node), { ...node, index, kind: "node" }]));
   const trapByCell = new Map(role.traps.map((trap) => [cellKey(trap), { ...trap, kind: "trap" }]));
   const fakeByCell = new Map((role.fakePath || []).map((node, index) => [cellKey(node), { ...node, index, kind: "fake" }]));
@@ -524,8 +595,13 @@ function renderTraceStage() {
   elements.boardWrap.style.setProperty("--board-size", boardSize);
   elements.boardWrap.classList.toggle("is-complete", state.traceComplete);
   const completedLetters = role.resultLetters.join(" / ");
-  elements.stageClearMessage.textContent = `붉은 플레이어 선과 파란 시스템 보조선으로 한글 '${completedLetters}'가 완성되었습니다.`;
-  elements.enterStageThree.textContent = `완성된 '${completedLetters}' 확인 완료 - STAGE 3 진입`;
+  elements.stageClearPopup.classList.toggle("is-minimal", usesPrecisionStroke);
+  elements.stageClearMessage.textContent = usesPrecisionStroke
+    ? ""
+    : `붉은 플레이어 선과 파란 시스템 보조선으로 한글 '${completedLetters}'가 완성되었습니다.`;
+  elements.enterStageThree.textContent = usesPrecisionStroke
+    ? "STAGE 3 진입"
+    : `완성된 '${completedLetters}' 확인 완료 - STAGE 3 진입`;
   elements.stageClearPopup.classList.toggle("is-hidden", !state.traceComplete);
   elements.enterStageThree.disabled = !state.traceComplete;
 
@@ -540,24 +616,27 @@ function renderTraceStage() {
 
       if (x === start.x && y === start.y) {
         cell.classList.add("start-cell");
-        cell.textContent = "출발";
+        if (!usesPrecisionStroke) cell.textContent = "출발";
       }
 
       if (pathNode) {
         cell.classList.add("node");
-        cell.textContent = pathNode.label;
+        cell.textContent = usesPrecisionStroke ? "" : pathNode.label;
+        cell.title = pathNode.label;
         if (pathNode.index < state.nextIndex) cell.classList.add("is-done");
         if (pathNode.index === state.nextIndex) cell.classList.add("is-next");
       }
 
       if (fakeNode) {
         cell.classList.add("fake-node");
-        cell.textContent = fakeNode.label;
+        cell.textContent = usesPrecisionStroke ? "" : fakeNode.label;
+        cell.title = fakeNode.label;
       }
 
       if (trapNode) {
         cell.classList.add("trap");
-        cell.textContent = trapNode.label;
+        cell.textContent = usesPrecisionStroke ? "" : trapNode.label;
+        cell.title = trapNode.label;
       }
 
       if (x === state.player.x && y === state.player.y) cell.classList.add("player");
@@ -622,9 +701,71 @@ function movePlayer(direction) {
     return;
   }
 
+  const previousPosition = { ...state.player };
   state.player = nextPosition;
-  evaluateTraceCell();
+
+  if (state.role.traceAlgorithm === "microFishHangul") {
+    evaluateMicroFishTraceMove(previousPosition, nextPosition, direction);
+  } else {
+    evaluateTraceCell();
+  }
+
   renderTraceStage();
+}
+
+function evaluateMicroFishTraceMove(previousPosition, nextPosition, direction) {
+  const role = state.role;
+  const currentLeg = role.strokePlan[state.strokePlanIndex];
+
+  if (!currentLeg || direction !== currentLeg.direction) {
+    resetTraceStage("정해진 획순 방향과 다릅니다. 최초 위치에서 다시 시작하세요.");
+    return;
+  }
+
+  if (!isPointOnStrokeLeg(previousPosition, currentLeg) || !isPointOnStrokeLeg(nextPosition, currentLeg)) {
+    resetTraceStage("정답 경로 밖의 짚신벌레류 위장 노드와 충돌했습니다!");
+    return;
+  }
+
+  addTraceSegment(previousPosition, nextPosition, "player");
+
+  if (cellKey(nextPosition) !== cellKey(currentLeg.to)) return;
+
+  const checkpoint = role.path[currentLeg.checkpointIndex];
+  if (checkpoint) {
+    state.nextIndex = Math.max(state.nextIndex, currentLeg.checkpointIndex + 1);
+    showToast(`정답 인과관계 확인: ${checkpoint.label}`, true);
+  }
+
+  if (currentLeg.autoMove) {
+    addTraceSegment(nextPosition, currentLeg.autoMove.to, "player");
+    state.player = { ...currentLeg.autoMove.to };
+  }
+
+  if (currentLeg.completesStage) {
+    completeTraceStage();
+    return;
+  }
+
+  if (currentLeg.warpTo) {
+    state.player = { ...currentLeg.warpTo };
+  }
+
+  state.strokePlanIndex += 1;
+  state.strokeStart = { ...state.player };
+}
+
+function isPointOnStrokeLeg(point, leg) {
+  const minX = Math.min(leg.from.x, leg.to.x);
+  const maxX = Math.max(leg.from.x, leg.to.x);
+  const minY = Math.min(leg.from.y, leg.to.y);
+  const maxY = Math.max(leg.from.y, leg.to.y);
+
+  return point.x >= minX
+    && point.x <= maxX
+    && point.y >= minY
+    && point.y <= maxY
+    && (leg.from.x === leg.to.x ? point.x === leg.from.x : point.y === leg.from.y);
 }
 
 function evaluateTraceCell() {
