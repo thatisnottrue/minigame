@@ -11,8 +11,8 @@
     <section id="start-screen" class="screen start-screen" aria-labelledby="game-title">
       <div class="hero-card">
         <p class="eyebrow">Virtual × Reality Eco Coop</p>
-        <h1 id="game-title">생태 협동학습<br>궤적 미니게임</h1>
-        <p class="intro">3인 1조가 각자의 전문가 패스코드로 입장해 먹이그물, 인과관계 궤적, 생태 피라미드를 완수하고 최종 장소 <strong>과학실</strong>을 추론합니다.</p>
+        <h1 id="game-title">생태 협동학습<br>복원 미니게임</h1>
+        <p class="intro">3인 1조가 각자의 전문가 패스코드로 입장해 먹이그물, 경포습지 GROW 복원, 생태 피라미드를 완수하고 최종 장소 <strong>과학실</strong>을 추론합니다.</p>
 
         <form id="passcode-form" class="passcode-form">
           <label for="passcode-input">전문가 패스코드</label>
@@ -69,26 +69,22 @@
         </div>
       </section>
 
-      <section id="stage-two" class="stage-area stage-two is-hidden" aria-labelledby="stage-title">
-        <div id="board-wrap" class="board-wrap">
-          <div id="game-board" class="game-board" aria-label="2D 탑뷰 인과관계 그리드 게임판"></div>
-          <svg id="trace-layer" class="trace-layer" aria-hidden="true"></svg>
+      <section id="stage-two" class="stage-area stage-two grow-stage is-hidden" aria-labelledby="stage-title">
+        <div class="grow-header" aria-live="polite">
+          <strong id="grow-turn">Turn 1 / 6</strong>
+          <span id="grow-next">다음 천이 단계: 🦠 미생물</span>
         </div>
-        <div class="controls-help">
-          <span>키보드: 방향키 / WASD (상·하·좌·우만)</span>
-          <span>모바일·태블릿: 아래 가상 패드</span>
-          <span class="trap-note">오답 노드 또는 순서가 다른 정답 노드 충돌 시 현재 스테이지 리셋</span>
+        <div id="wetland-canvas" class="wetland-canvas is-dry" aria-label="경포습지 생태계 복원 캔버스">
+          <div class="canvas-sky" aria-hidden="true"></div>
+          <div id="grow-empty-message" class="grow-empty-message">텅 빈 메마른 습지입니다.<br>생태계 천이의 첫 단계를 선택하세요.</div>
+          <div id="grow-organisms" class="grow-organisms"></div>
+          <div id="grow-final-letter" class="grow-final-letter is-hidden" aria-live="polite"></div>
         </div>
-        <div id="stage-clear-popup" class="stage-clear-popup is-hidden" role="dialog" aria-live="polite" aria-labelledby="stage-clear-title">
-          <h3 id="stage-clear-title">STAGE 2 CLEAR!</h3>
-          <p>붉은 플레이어 선과 파란 시스템 보조선으로 한글이 완성되었습니다.</p>
-          <button id="enter-stage-three" type="button" class="stage-three-entry" disabled>완성 글자 확인 완료 - STAGE 3 진입</button>
-        </div>
-        <div class="mobile-pad" aria-label="모바일 이동 패드">
-          <button class="pad-btn pad-up" data-move="up" aria-label="위로 이동">▲</button>
-          <button class="pad-btn pad-left" data-move="left" aria-label="왼쪽으로 이동">◀</button>
-          <button class="pad-btn pad-down" data-move="down" aria-label="아래로 이동">▼</button>
-          <button class="pad-btn pad-right" data-move="right" aria-label="오른쪽으로 이동">▶</button>
+        <div id="grow-buttons" class="grow-buttons" aria-label="셔플된 생태 분류군 선택 버튼"></div>
+        <div id="stage-clear-popup" class="stage-clear-popup grow-clear-popup is-hidden" role="dialog" aria-live="polite" aria-labelledby="stage-clear-title">
+          <h3 id="stage-clear-title">경포가시연습지 완벽 복원 성공!</h3>
+          <p>6단계 생태계 천이가 완성되어 모든 생물이 [Lv.MAX]로 빛납니다.</p>
+          <button id="enter-stage-three" type="button" class="stage-three-entry" disabled>STAGE 3 진입</button>
         </div>
       </section>
 
@@ -106,7 +102,7 @@
     <section id="result-screen" class="screen result-screen is-hidden" aria-labelledby="result-title">
       <div class="result-card">
         <p class="eyebrow">Mission Complete</p>
-        <h2 id="result-title">역할별 궤적 글자 완성!</h2>
+        <h2 id="result-title">역할별 복원 글자 완성!</h2>
         <div id="final-letter" class="final-letter">교</div>
         <p id="result-message"></p>
         <div class="hint-box">

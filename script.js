@@ -166,13 +166,58 @@ function buildDenseMicroFishTraps() {
 // 순서가 맞춰진 후 정상 변수 초기화 진행
 const foodWebAnswerEdges = buildFoodWebAnswerEdges();
 const pyramidOrder = ["생산자 1000", "1차 소비자 100", "2차 소비자 10", "최상위 소비자 1"];
+const growSequence = [
+  {
+    key: "microbe",
+    buttonLabel: "🦠 미생물",
+    emojiStages: ["🦠", "🦠🦠", "🦠🦠✨"],
+    name: "미생물",
+    descriptions: ["건조한 바닥의 유기물을 분해하기 시작합니다.", "분해 산물이 쌓이며 토양이 살아납니다.", "물질 순환의 기반을 안정적으로 만듭니다."]
+  },
+  {
+    key: "plant",
+    buttonLabel: "🪷 가시연(식물)",
+    emojiStages: ["🪷", "🪷🌿", "🪷🌿🌸"],
+    name: "가시연(식물)",
+    descriptions: ["영양분을 흡수해 첫 잎을 펼칩니다.", "수면을 덮어 서식처 그늘을 만듭니다.", "습지의 생산자 군락으로 번성합니다."]
+  },
+  {
+    key: "insect",
+    buttonLabel: "🦗 수서곤충",
+    emojiStages: ["🦗", "🦗💧", "🦗💧🪲"],
+    name: "수서곤충",
+    descriptions: ["식물 주변에 유충이 정착합니다.", "작은 먹이그물이 움직이기 시작합니다.", "어류의 먹이가 되는 곤충 군집이 풍부해집니다."]
+  },
+  {
+    key: "fish",
+    buttonLabel: "🐟 어류",
+    emojiStages: ["🐟", "🐟🐠", "🐟🐠💦"],
+    name: "어류",
+    descriptions: ["얕은 물길에 작은 물고기가 들어옵니다.", "수서곤충을 먹으며 개체수가 늘어납니다.", "습지 수중 먹이망의 중심이 됩니다."]
+  },
+  {
+    key: "bird",
+    buttonLabel: "🦅 조류",
+    emojiStages: ["🦅", "🦅🪽", "🦅🪽🪶"],
+    name: "조류",
+    descriptions: ["먹이를 찾아 물새가 날아옵니다.", "갈대와 수면 가장자리에 머뭅니다.", "습지 상위 소비자로 다양성을 높입니다."]
+  },
+  {
+    key: "mammal",
+    buttonLabel: "🦦 포유류",
+    emojiStages: ["🦦", "🦦🌊", "🦦🌊✨"],
+    name: "포유류",
+    descriptions: ["수달 같은 포유류가 흔적을 남깁니다.", "풍부한 어류를 따라 안정적으로 정착합니다.", "최상위 생물이 돌아와 평형을 완성합니다."]
+  }
+];
 
 const roleData = {
   "1004": {
     code: "1004",
     roleName: "식물·곤충 전문가",
     badge: "식물·곤충",
-    resultLetters: ["교"],
+    resultLetters: ["과"],
+    growLetter: "과",
     boardSize: 11,
     start: { x: 3, y: 3 },
     initialNextIndex: 0,
@@ -185,13 +230,14 @@ const roleData = {
       { x: 0, y: 5, label: "습지 먹이원 단절" },
       { x: 10, y: 5, label: "천적 균형 붕괴" }
     ],
-    hint: "1. 당신이 미로에서 완성한 글자 [ 교 ]는 최종 장소 이름의 '첫 번째 글자'입니다.\n2. [함정 해제 단서]: 조류·포유류 대원의 화면에 글자가 두 개 떠서 혼란을 겪고 있습니다. 조류·포유류 대원에게 '황소개구리(교란종) 경로는 가짜이며, 오직 잉어를 주식으로 삼는 수중생활 포유류(수달)의 정답 경로로 만들어진 글자만 진짜'라고 알려주십시오!"
+    hint: "1. 당신이 GROW 복원 게임에서 완성한 글자 [ 과 ]는 최종 장소 이름의 '첫 번째 글자'입니다.\n2. [사용 방법]: 조원들이 얻은 [ 학 ], [ 실 ]과 결합해 최종 장소를 완성하십시오."
   },
   "2005": {
     code: "2005",
     roleName: "미생물·어류 전문가",
     badge: "미생물·어류",
     resultLetters: ["학"],
+    growLetter: "학",
     boardSize: 11,
     start: { x: 5, y: 1 },
     traceAlgorithm: "microFishHangul",
@@ -199,13 +245,14 @@ const roleData = {
     path: microFishTracePath,
     strokePlan: microFishStrokePlan,
     traps: buildDenseMicroFishTraps(),
-    hint: "1. 당신이 미로에서 완성한 글자 [ 학 ]는 최종 장소 이름의 '두 번째 글자'입니다.\n2. [사용 방법]: 당신이 찾은 글자 앞뒤에 다른 대원이 찾아낸 글자를 결합해 최종 장소를 도출하십시오."
+    hint: "1. 당신이 GROW 복원 게임에서 완성한 글자 [ 학 ]는 최종 장소 이름의 '두 번째 글자'입니다.\n2. [사용 방법]: 조원들이 얻은 [ 과 ], [ 실 ]과 결합해 최종 장소를 완성하십시오."
   },
   "3006": {
     code: "3006",
     roleName: "조류·포유류 전문가",
     badge: "조류·포유류",
-    resultLetters: ["실", "방"],
+    resultLetters: ["실"],
+    growLetter: "실",
     path: [
       { x: 1, y: 9, label: "어류 자원 풍부" },
       { x: 3, y: 7, label: "수달(포유류) 정착" },
@@ -219,7 +266,7 @@ const roleData = {
       { x: 8, y: 3, label: "습지 평형 파괴" }
     ],
     traps: [],
-    hint: "1. 당신의 화면에는 생태계 교란 데이터가 섞여 있어 두 개의 글자([ 실 ], [ 방 ])가 보입니다.\n2. 어떤 글자가 진짜 최종 장소의 단어인지 판단할 수 있는 열쇠는 오직 '식물·곤충 전문가'의 화면에만 적혀 있습니다. 동료에게 당신의 진짜 글자가 무엇인지 즉시 물어보십시오!"
+    hint: "1. 당신이 GROW 복원 게임에서 완성한 글자 [ 실 ]는 최종 장소 이름의 '세 번째 글자'입니다.\n2. 조원들이 얻은 [ 과 ], [ 학 ]과 결합해 최종 장소를 완성하십시오."
   }
 };
 
@@ -229,8 +276,8 @@ const stageCopy = [
     description: "왼쪽 피식자와 오른쪽 포식자/분해자 노드를 1:1로 이어 총 7개의 먹이사슬을 완성하세요. 정답 선은 연한 초록색으로 고정되고, 오답 선은 빨간색으로 깜빡인 뒤 사라집니다."
   },
   {
-    title: "STAGE 2 - 인과관계 궤적",
-    description: "캐릭터를 상/하/좌/우로 움직여 활동지에서 도출한 생태학적 연쇄 반응 노드를 순서대로 밟으세요. 오답 노드에 닿으면 이 스테이지가 리셋됩니다."
+    title: "STAGE 2 - 경포습지 생태계 통합 GROW 복원 게임",
+    description: "하단의 6개 생태 분류군을 올바른 천이 순서(미생물 → 가시연 → 수서곤충 → 어류 → 조류 → 포유류)로 클릭해 메마른 캔버스를 완벽한 습지로 복원하세요."
   },
   {
     title: "STAGE 3 - 생태 피라미드",
@@ -254,7 +301,10 @@ const state = {
   shuffledRightItems: [],
   activeDrag: null,
   suppressPointerClick: false,
-  pyramidPlacements: []
+  pyramidPlacements: [],
+  growPlacements: [],
+  shuffledGrowItems: [],
+  growComplete: false
 };
 
 const elements = {
@@ -287,6 +337,13 @@ const elements = {
   pyramidStack: document.querySelector("#pyramid-stack"),
   pyramidBank: document.querySelector("#pyramid-bank"),
   resetPyramid: document.querySelector("#reset-pyramid"),
+  wetlandCanvas: document.querySelector("#wetland-canvas"),
+  growTurn: document.querySelector("#grow-turn"),
+  growNext: document.querySelector("#grow-next"),
+  growButtons: document.querySelector("#grow-buttons"),
+  growOrganisms: document.querySelector("#grow-organisms"),
+  growEmptyMessage: document.querySelector("#grow-empty-message"),
+  growFinalLetter: document.querySelector("#grow-final-letter"),
   toast: document.querySelector("#toast"),
   finalLetter: document.querySelector("#final-letter"),
   resultMessage: document.querySelector("#result-message"),
@@ -361,6 +418,7 @@ function beginGame(role) {
   state.activeDrag = null;
   state.suppressPointerClick = false;
   state.pyramidPlacements = [];
+  resetGrowProgress();
   elements.roleBadge.textContent = role.badge;
   showScreen("game");
   renderStage();
@@ -374,16 +432,15 @@ function renderStage() {
   elements.stageOne.classList.toggle("is-hidden", state.stageIndex !== 0);
   elements.stageTwo.classList.toggle("is-hidden", state.stageIndex !== 1);
   elements.stageThree.classList.toggle("is-hidden", state.stageIndex !== 2);
-  elements.nextNodeWrap.classList.toggle("is-hidden", state.stageIndex !== 1);
+  elements.nextNodeWrap.classList.add("is-hidden");
   elements.skipStage.textContent = state.stageIndex < 2 ? `STAGE ${state.stageIndex + 1} 스킵` : "결과 화면으로 스킵";
   if (state.stageIndex !== 1) {
-    elements.boardWrap.classList.remove("is-complete");
     elements.stageClearPopup.classList.add("is-hidden");
     elements.enterStageThree.disabled = true;
   }
 
   if (state.stageIndex === 0) renderFoodWeb();
-  if (state.stageIndex === 1) renderTraceStage();
+  if (state.stageIndex === 1) renderGrowStage();
   if (state.stageIndex === 2) renderPyramid();
 }
 
@@ -665,7 +722,7 @@ function checkFoodWeb() {
     return;
   }
 
-  showToast("경포가시연습지 먹이사슬 매칭 성공! 인과관계 궤적으로 이동합니다.", true);
+  showToast("경포가시연습지 먹이사슬 매칭 성공! GROW 복원 게임으로 이동합니다.", true);
   goToStage(1);
 }
 
@@ -677,6 +734,81 @@ function resetFoodWeb() {
   state.shuffledLeftItems = shuffle(leftFoodItems);
   state.shuffledRightItems = shuffle(rightFoodItems);
   renderFoodWeb();
+}
+
+function resetGrowProgress() {
+  state.growPlacements = [];
+  state.shuffledGrowItems = shuffle(growSequence);
+  state.growComplete = false;
+}
+
+function renderGrowStage() {
+  const nextStep = growSequence[state.growPlacements.length];
+  elements.growTurn.textContent = state.growComplete ? "Turn 6 / 6 · 복원 완료" : `Turn ${state.growPlacements.length + 1} / ${growSequence.length}`;
+  elements.growNext.textContent = state.growComplete ? "경포가시연습지 완벽 복원!" : `다음 천이 단계: ${nextStep.buttonLabel}`;
+  elements.growEmptyMessage.classList.toggle("is-hidden", state.growPlacements.length > 0);
+  elements.wetlandCanvas.classList.toggle("is-dry", state.growPlacements.length === 0);
+  elements.wetlandCanvas.classList.toggle("is-restored", state.growComplete);
+  elements.stageClearPopup.classList.toggle("is-hidden", !state.growComplete);
+  elements.enterStageThree.disabled = !state.growComplete;
+  elements.growFinalLetter.textContent = state.growComplete ? `[ ${state.role.growLetter} ]` : "";
+  elements.growFinalLetter.classList.toggle("is-hidden", !state.growComplete);
+
+  elements.growOrganisms.innerHTML = "";
+  state.growPlacements.forEach((placement, index) => {
+    const organism = growSequence.find((item) => item.key === placement.key);
+    const levelIndex = state.growComplete ? 2 : Math.min(placement.level - 1, 2);
+    const card = document.createElement("div");
+    card.className = `grow-organism grow-${organism.key}`;
+    card.style.setProperty("--grow-scale", String(1 + levelIndex * 0.18));
+    card.innerHTML = `
+      <span class="grow-emoji" aria-hidden="true">${organism.emojiStages[levelIndex]}</span>
+      <strong>${organism.name}</strong>
+      <em>${state.growComplete ? "Lv.MAX" : `Lv.${placement.level}`}</em>
+      <small>${organism.descriptions[levelIndex]}</small>
+    `;
+    card.style.animationDelay = `${index * 80}ms`;
+    elements.growOrganisms.appendChild(card);
+  });
+
+  elements.growButtons.innerHTML = "";
+  state.shuffledGrowItems.forEach((item) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "grow-button";
+    button.textContent = item.buttonLabel;
+    button.disabled = state.growComplete || state.growPlacements.some((placement) => placement.key === item.key);
+    button.addEventListener("click", () => chooseGrowOrganism(item.key));
+    elements.growButtons.appendChild(button);
+  });
+}
+
+function chooseGrowOrganism(key) {
+  if (state.growComplete) return;
+  const expected = growSequence[state.growPlacements.length];
+  if (!expected || key !== expected.key) {
+    resetGrowProgress();
+    renderGrowStage();
+    window.alert("생태계 평형이 맞지 않아 천이가 중단되었습니다!");
+    showToast("생태계 평형이 맞지 않아 천이가 중단되었습니다! 캔버스를 초기화합니다.", false);
+    return;
+  }
+
+  state.growPlacements = state.growPlacements.map((placement) => ({
+    ...placement,
+    level: placement.level + 1
+  }));
+  state.growPlacements.push({ key, level: 1 });
+
+  if (state.growPlacements.length === growSequence.length) {
+    state.growComplete = true;
+    state.growPlacements = state.growPlacements.map((placement) => ({ ...placement, level: "MAX" }));
+    showToast("경포가시연습지 완벽 복원 성공! STAGE 3 진입 버튼이 활성화되었습니다.", true);
+  } else {
+    showToast(`${expected.buttonLabel} 배치 성공! 기존 생물들이 한 단계 성장했습니다.`, true);
+  }
+
+  renderGrowStage();
 }
 
 function cellCenter(point) {
@@ -787,7 +919,7 @@ function addCompletedTraceLeg(node) {
 }
 
 function movePlayer(direction) {
-  if (state.stageIndex !== 1 || state.traceComplete) return;
+  if (state.stageIndex !== 1 || elements.board === null || state.traceComplete) return;
   const deltas = {
     up: { x: 0, y: -1 },
     down: { x: 0, y: 1 },
@@ -972,7 +1104,7 @@ function showResult() {
   const role = state.role;
 
   elements.finalLetter.textContent = role.resultLetters.join(" / ");
-  elements.resultMessage.textContent = `${role.roleName} 세션으로 3개 스테이지를 모두 완수했습니다. 조원과 글자 및 함정 해제 단서를 조합해 최종 장소를 도출하세요.`;
+  elements.resultMessage.textContent = `${role.roleName} 세션으로 3개 스테이지를 모두 완수했습니다. 조원과 글자를 조합해 최종 장소를 도출하세요.`;
   elements.roleHint.textContent = role.hint;
   showScreen("result");
 }
@@ -988,7 +1120,8 @@ function skipCurrentStage() {
     showToast("STAGE 1을 건너뛰었습니다.", true);
     goToStage(1);
   } else if (state.stageIndex === 1) {
-    state.traceComplete = true;
+    state.growPlacements = growSequence.map((item) => ({ key: item.key, level: "MAX" }));
+    state.growComplete = true;
     showToast("STAGE 2를 건너뛰었습니다.", true);
     goToStage(2);
   } else if (state.stageIndex === 2) {
@@ -1053,7 +1186,7 @@ elements.resetFoodWeb.addEventListener("click", resetFoodWeb);
 elements.skipStage.addEventListener("click", skipCurrentStage);
 elements.resetPyramid.addEventListener("click", resetPyramid);
 elements.enterStageThree.addEventListener("click", () => {
-  if (!state.traceComplete) return;
+  if (!state.growComplete) return;
   showToast("생태 피라미드로 이동합니다.", true);
   goToStage(2);
 });
