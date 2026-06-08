@@ -474,9 +474,10 @@ h1 {
   filter: drop-shadow(0 0 6px rgba(255, 38, 59, 0.58));
 }
 
-.trace-layer .assist-trace {
-  stroke: var(--assist);
-  filter: drop-shadow(0 0 6px rgba(8, 119, 255, 0.56));
+.trace-layer .assist-trace,
+.trace-layer .system-trace {
+  stroke: var(--accent);
+  filter: drop-shadow(0 0 7px rgba(255, 38, 59, 0.72));
 }
 
 .board-wrap.is-complete {
@@ -533,9 +534,8 @@ h1 {
 .mobile-pad {
   display: grid;
   grid-template-areas:
-    "upLeft up upRight"
-    "left down right"
-    "downLeft . downRight";
+    ". up ."
+    "left down right";
   grid-template-columns: repeat(3, 64px);
   justify-content: center;
   gap: 10px;
@@ -555,10 +555,6 @@ h1 {
 .pad-left { grid-area: left; }
 .pad-down { grid-area: down; }
 .pad-right { grid-area: right; }
-.pad-up-left { grid-area: upLeft; }
-.pad-up-right { grid-area: upRight; }
-.pad-down-left { grid-area: downLeft; }
-.pad-down-right { grid-area: downRight; }
 
 .pyramid-layout {
   grid-template-columns: minmax(260px, 1fr) minmax(240px, 1fr);
