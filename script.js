@@ -57,17 +57,17 @@ const roleData = {
     roleName: "식물·곤충 전문가",
     badge: "식물·곤충",
     resultLetters: ["교"],
-    boardSize: 5,
-    start: { x: 2, y: 0 },
+    boardSize: 11,
+    start: { x: 5, y: 1 },
     path: [
-      { x: 1, y: 1, label: "가시연 부활", teleportTo: { x: 3, y: 1 } },
-      { x: 2, y: 2, label: "연테두리진딧물 증가", teleportTo: { x: 0, y: 3 } },
-      { x: 4, y: 3, label: "실잠자리 성충 증가", teleportTo: { x: 2, y: 2 } },
-      { x: 2, y: 4, label: "물장군 사냥 활성화" }
+      { x: 2, y: 4, label: "가시연 부활", teleportTo: { x: 8, y: 4 } },
+      { x: 5, y: 4, label: "연테두리진딧물 증가", teleportTo: { x: 1, y: 6 } },
+      { x: 9, y: 6, label: "실잠자리 성충 증가", teleportTo: { x: 5, y: 6 } },
+      { x: 5, y: 10, label: "물장군 사냥 활성화" }
     ],
     traps: [
-      { x: 0, y: 1, label: "식물 즙액 감소" },
-      { x: 4, y: 1, label: "실잠자리 유충 전멸" }
+      { x: 0, y: 10, label: "식물 즙액 감소" },
+      { x: 10, y: 10, label: "실잠자리 유충 전멸" }
     ],
     hint: "1. 당신이 미로에서 완성한 글자 [ 교 ]는 최종 장소 이름의 '첫 번째 글자'입니다.\n2. [함정 해제 단서]: 조류·포유류 대원의 화면에 글자가 두 개 떠서 혼란을 겪고 있습니다. 조류·포유류 대원에게 '황소개구리(교란종) 경로는 가짜이며, 오직 잉어를 주식으로 삼는 수중생활 포유류(수달)의 정답 경로로 만들어진 글자만 진짜'라고 알려주십시오!"
   },
