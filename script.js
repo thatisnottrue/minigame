@@ -284,7 +284,34 @@ const elements = {
 };
 
 function normalizePasscode(value) {
-  return value.trim();
+  return value
+    .normalize("NFKC")
+    .replace(/\D/g, "");
+}
+
+function getRoleByPasscode(value) {
+  const passcode = normalizePasscode(value);
+  return { passcode, role: roleData[passcode] || null };
+}
+
+function startGameFromPasscode(value) {
+  const { passcode, role } = getRoleByPasscode(value);
+
+  if (!passcode) {
+    elements.passcodeError.textContent = "패스코드 숫자를 입력하세요.";
+    elements.passcodeInput.focus();
+    return;
+  }
+
+  if (!role) {
+    elements.passcodeError.textContent = "등록되지 않은 패스코드입니다. 1004, 2005, 3006 중 하나를 입력하세요.";
+    elements.passcodeInput.focus();
+    return;
+  }
+
+  elements.passcodeInput.value = passcode;
+  elements.passcodeError.textContent = "";
+  beginGame(role);
 }
 
 function showScreen(screenName) {
@@ -912,13 +939,18 @@ function showToast(message, success) {
 
 elements.form.addEventListener("submit", (event) => {
   event.preventDefault();
-  const role = roleData[normalizePasscode(elements.passcodeInput.value)];
-  if (!role) {
-    elements.passcodeError.textContent = "등록되지 않은 패스코드입니다. 1004, 2005, 3006 중 하나를 입력하세요.";
-    return;
-  }
+  startGameFromPasscode(elements.passcodeInput.value);
+});
+
+elements.passcodeInput.addEventListener("input", () => {
   elements.passcodeError.textContent = "";
-  beginGame(role);
+});
+
+document.querySelectorAll("[data-passcode]").forEach((button) => {
+  button.addEventListener("click", () => {
+    elements.passcodeInput.value = button.dataset.passcode;
+    startGameFromPasscode(button.dataset.passcode);
+  });
 });
 
 document.addEventListener("keydown", (event) => {

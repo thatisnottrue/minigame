@@ -145,6 +145,28 @@ h1 {
   font-weight: 900;
 }
 
+
+.quick-passcodes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.quick-passcodes button {
+  padding: 12px 10px;
+  border-radius: 14px;
+  color: var(--primary-dark);
+  background: #e8f3df;
+  font-weight: 900;
+  box-shadow: inset 0 0 0 2px rgba(63, 143, 93, 0.16);
+}
+
+.quick-passcodes button:hover,
+.quick-passcodes button:focus-visible {
+  background: #d9edcf;
+}
+
 .code-help {
   margin-top: 18px;
 }
@@ -885,5 +907,11 @@ h1 {
 
   .food-line {
     stroke-width: 8;
+  }
+}
+
+@media (max-width: 620px) {
+  .quick-passcodes {
+    grid-template-columns: 1fr;
   }
 }
