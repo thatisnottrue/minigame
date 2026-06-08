@@ -1,6 +1,53 @@
 const BOARD_SIZE = 11;
 const STORAGE_KEY = "eco-coop-mvp-save";
-const foodWebOrder = ["생산자", "초식곤충", "어류", "양서·파충류", "조류·포유류", "분해자"];
+const foodWebGroups = [
+  {
+    name: "생산자",
+    nodes: ["가시연", "큰고랭이", "녹조류", "돌말류"]
+  },
+  {
+    name: "초식곤충",
+    nodes: ["연테두리진딧물", "벼메뚜기"]
+  },
+  {
+    name: "육식곤충",
+    nodes: ["실잠자리", "물장군", "게아재비", "송장헤엄치게"]
+  },
+  {
+    name: "어류",
+    nodes: ["송사리", "큰가시고기", "붕어", "미꾸리", "가물치", "메기"]
+  },
+  {
+    name: "양서·파충류",
+    nodes: ["참개구리"]
+  },
+  {
+    name: "조류·포유류",
+    nodes: ["백로", "왜가리", "저어새", "수달", "너구리"]
+  },
+  {
+    name: "분해자",
+    nodes: ["미생물(메탄생성균)"]
+  }
+];
+
+const foodWebNodes = foodWebGroups.flatMap((group) => group.nodes);
+const decomposerNode = "미생물(메탄생성균)";
+
+const foodWebPredationRules = [
+  { prey: ["가시연", "녹조류", "돌말류"], predators: ["연테두리진딧물", "벼메뚜기", "붕어", "송사리"] },
+  { prey: ["큰고랭이"], predators: ["벼메뚜기", "붕어"] },
+  { prey: ["연테두리진딧물"], predators: ["실잠자리", "참개구리"] },
+  { prey: ["벼메뚜기"], predators: ["참개구리", "백로", "너구리"] },
+  { prey: ["실잠자리"], predators: ["송장헤엄치게", "송사리", "붕어", "참개구리", "왜가리"] },
+  { prey: ["송장헤엄치게"], predators: ["물장군", "게아재비", "참개구리", "왜가리"] },
+  { prey: ["물장군", "게아재비"], predators: ["왜가리", "백로", "너구리"] },
+  { prey: ["송사리", "큰가시고기"], predators: ["가물치", "메기", "수달", "저어새"] },
+  { prey: ["붕어", "미꾸리"], predators: ["수달", "너구리", "백로"] },
+  { prey: ["가물치", "메기"], predators: ["수달"] }
+];
+
+const foodWebAnswerEdges = buildFoodWebAnswerEdges();
 const pyramidOrder = ["생산자 1000", "1차 소비자 100", "2차 소비자 10", "최상위 소비자 1"];
 
 const roleData = {
@@ -63,7 +110,7 @@ const roleData = {
 const stageCopy = [
   {
     title: "STAGE 1 - 먹이그물 잇기",
-    description: "6대 분류군 카드를 에너지 이동 방향에 맞게 빈 칸으로 끌어 놓으세요."
+    description: "경포가시연습지 실제 생물 노드를 선택해 먹히는 생물 ➜ 먹는 생물 방향으로 먹이그물과 분해자 순환 화살표를 모두 연결하세요."
   },
   {
     title: "STAGE 2 - 인과관계 궤적",
@@ -84,7 +131,8 @@ const state = {
   startTime: 0,
   elapsedSeconds: 0,
   timerId: null,
-  foodPlacements: Array(foodWebOrder.length).fill(null),
+  foodConnections: [],
+  selectedFoodNode: null,
   pyramidPlacements: []
 };
 
@@ -172,7 +220,8 @@ function beginGame(role) {
   state.player = { x: 0, y: 10 };
   state.nextIndex = 0;
   state.tracePoints = [cellCenter(state.player)];
-  state.foodPlacements = Array(foodWebOrder.length).fill(null);
+  state.foodConnections = [];
+  state.selectedFoodNode = null;
   state.pyramidPlacements = [];
   state.startTime = Date.now();
   state.elapsedSeconds = 0;
@@ -210,87 +259,161 @@ function shuffle(items) {
   return [...items].sort(() => Math.random() - 0.5);
 }
 
-function renderFoodWeb() {
-  elements.dropLane.innerHTML = "";
-  state.foodPlacements.forEach((label, index) => {
-    const slot = document.createElement("button");
-    slot.className = "drop-slot";
-    slot.type = "button";
-    slot.dataset.index = String(index);
-    slot.textContent = label || `${index + 1}번째`;
-    slot.addEventListener("dragover", allowDrop);
-    slot.addEventListener("drop", handleFoodDrop);
-    slot.addEventListener("click", () => removeFoodCard(index));
-    elements.dropLane.appendChild(slot);
+function buildFoodWebAnswerEdges() {
+  const edges = new Set();
 
-    if (index < foodWebOrder.length - 1) {
-      const arrow = document.createElement("span");
-      arrow.className = "energy-arrow";
-      arrow.textContent = "➜";
-      elements.dropLane.appendChild(arrow);
-    }
+  foodWebPredationRules.forEach((rule) => {
+    rule.prey.forEach((prey) => {
+      rule.predators.forEach((predator) => edges.add(edgeKey(prey, predator)));
+    });
   });
+
+  foodWebNodes
+    .filter((node) => node !== decomposerNode)
+    .forEach((node) => edges.add(edgeKey(node, decomposerNode)));
+
+  return edges;
+}
+
+function edgeKey(from, to) {
+  return `${from}→${to}`;
+}
+
+function parseEdgeKey(key) {
+  const [from, to] = key.split("→");
+  return { from, to };
+}
+
+function renderFoodWeb() {
+  const completeCount = state.foodConnections.length;
+  const totalCount = foodWebAnswerEdges.size;
+  elements.dropLane.innerHTML = "";
+
+  const summary = document.createElement("div");
+  summary.className = "food-web-summary";
+  summary.innerHTML = `
+    <strong>연결 현황 ${completeCount}/${totalCount}</strong>
+    <span>카드를 두 번 선택해 <b>먹히는 생물 ➜ 먹는 생물</b> 화살표를 만드세요. 모든 생물의 사체·배설물은 분해자에게 연결되고, 붕어·미꾸리는 진흙 바닥 유기물 순환을 돕는 연결까지 확인합니다.</span>
+  `;
+  elements.dropLane.appendChild(summary);
+
+  const connectionList = document.createElement("div");
+  connectionList.className = "connection-list";
+  if (state.foodConnections.length === 0) {
+    connectionList.textContent = "아직 연결한 화살표가 없습니다.";
+  } else {
+    state.foodConnections.forEach((key) => {
+      const { from, to } = parseEdgeKey(key);
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "connection-chip";
+      chip.textContent = `${from} ➜ ${to}`;
+      chip.title = "클릭하면 이 연결을 삭제합니다.";
+      chip.addEventListener("click", () => removeFoodConnection(key));
+      connectionList.appendChild(chip);
+    });
+  }
+  elements.dropLane.appendChild(connectionList);
 
   elements.cardBank.innerHTML = "";
-  const remaining = foodWebOrder.filter((label) => !state.foodPlacements.includes(label));
-  shuffle(remaining).forEach((label) => {
-    const card = document.createElement("button");
-    card.className = "food-card";
-    card.type = "button";
-    card.draggable = true;
-    card.textContent = label;
-    card.dataset.label = label;
-    card.addEventListener("dragstart", handleFoodDrag);
-    card.addEventListener("click", () => placeNextEmptyFoodCard(label));
-    elements.cardBank.appendChild(card);
+  foodWebGroups.forEach((group) => {
+    const groupWrap = document.createElement("section");
+    groupWrap.className = "food-group";
+    groupWrap.setAttribute("aria-label", `${group.name} 생물 카드`);
+
+    const heading = document.createElement("h3");
+    heading.textContent = group.name;
+    groupWrap.appendChild(heading);
+
+    const nodeWrap = document.createElement("div");
+    nodeWrap.className = "food-node-wrap";
+
+    group.nodes.forEach((node) => {
+      const card = document.createElement("button");
+      card.className = "food-card";
+      card.type = "button";
+      card.textContent = node;
+      card.dataset.label = node;
+      card.setAttribute("aria-pressed", String(state.selectedFoodNode === node));
+      if (state.selectedFoodNode === node) card.classList.add("is-selected");
+      card.addEventListener("click", () => chooseFoodNode(node));
+      nodeWrap.appendChild(card);
+    });
+
+    groupWrap.appendChild(nodeWrap);
+    elements.cardBank.appendChild(groupWrap);
   });
 }
 
-function handleFoodDrag(event) {
-  event.dataTransfer.setData("text/plain", event.currentTarget.dataset.label);
+function chooseFoodNode(label) {
+  if (!foodWebNodes.includes(label)) return;
+
+  if (!state.selectedFoodNode) {
+    state.selectedFoodNode = label;
+    renderFoodWeb();
+    showToast(`${label}: 먹히는 생물로 선택했습니다. 이제 먹는 생물을 선택하세요.`, true);
+    return;
+  }
+
+  if (state.selectedFoodNode === label) {
+    state.selectedFoodNode = null;
+    renderFoodWeb();
+    return;
+  }
+
+  placeFoodConnection(state.selectedFoodNode, label);
 }
 
-function allowDrop(event) {
-  event.preventDefault();
-}
+function placeFoodConnection(from, to) {
+  const key = edgeKey(from, to);
+  state.selectedFoodNode = null;
 
-function handleFoodDrop(event) {
-  event.preventDefault();
-  const label = event.dataTransfer.getData("text/plain");
-  const index = Number(event.currentTarget.dataset.index);
-  placeFoodCard(label, index);
-}
+  if (!foodWebAnswerEdges.has(key)) {
+    renderFoodWeb();
+    showToast(`${from} ➜ ${to} 연결은 활동지 정답 먹이그물에 없습니다.`, false);
+    return;
+  }
 
-function placeFoodCard(label, index) {
-  if (!label || !foodWebOrder.includes(label)) return;
-  state.foodPlacements = state.foodPlacements.map((item) => (item === label ? null : item));
-  state.foodPlacements[index] = label;
+  if (state.foodConnections.includes(key)) {
+    renderFoodWeb();
+    showToast("이미 연결한 화살표입니다.", false);
+    return;
+  }
+
+  state.foodConnections.push(key);
+  state.foodConnections.sort((a, b) => a.localeCompare(b, "ko"));
   renderFoodWeb();
+  showToast(`${from} ➜ ${to} 연결 성공`, true);
 }
 
-function placeNextEmptyFoodCard(label) {
-  const emptyIndex = state.foodPlacements.findIndex((item) => item === null);
-  if (emptyIndex === -1) return;
-  placeFoodCard(label, emptyIndex);
-}
-
-function removeFoodCard(index) {
-  state.foodPlacements[index] = null;
+function removeFoodConnection(key) {
+  state.foodConnections = state.foodConnections.filter((connection) => connection !== key);
   renderFoodWeb();
 }
 
 function checkFoodWeb() {
-  const isCorrect = foodWebOrder.every((label, index) => state.foodPlacements[index] === label);
-  if (!isCorrect) {
-    showToast("에너지 이동 방향이 맞지 않습니다. 생산자에서 시작해 분해자로 순환시켜 보세요.", false);
+  const connected = new Set(state.foodConnections);
+  const missing = [...foodWebAnswerEdges].filter((key) => !connected.has(key));
+  const wrong = state.foodConnections.filter((key) => !foodWebAnswerEdges.has(key));
+
+  if (wrong.length > 0) {
+    showToast("정답 표에 없는 연결이 포함되어 있습니다. 잘못된 화살표를 삭제해 주세요.", false);
     return;
   }
-  showToast("먹이그물 연결 성공! 인과관계 궤적으로 이동합니다.", true);
+
+  if (missing.length > 0) {
+    const { from, to } = parseEdgeKey(missing[0]);
+    showToast(`아직 ${missing.length}개 연결이 남았습니다. 예: ${from} ➜ ${to}`, false);
+    return;
+  }
+
+  showToast("경포가시연습지 먹이그물과 분해자 순환 연결 성공! 인과관계 궤적으로 이동합니다.", true);
   goToStage(1);
 }
 
 function resetFoodWeb() {
-  state.foodPlacements = Array(foodWebOrder.length).fill(null);
+  state.foodConnections = [];
+  state.selectedFoodNode = null;
   renderFoodWeb();
 }
 
