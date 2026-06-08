@@ -3,19 +3,19 @@ const STORAGE_KEY = "eco-coop-mvp-save";
 const foodWebGroups = [
   {
     name: "생산자",
-    nodes: ["가시연", "큰고랭이", "녹조류", "돌말류"]
+    nodes: ["가시연", "녹조류"]
   },
   {
     name: "초식곤충",
-    nodes: ["연테두리진딧물", "벼메뚜기"]
+    nodes: ["벼메뚜기"]
   },
   {
     name: "육식곤충",
-    nodes: ["실잠자리", "물장군", "게아재비", "송장헤엄치게"]
+    nodes: ["실잠자리", "물장군"]
   },
   {
     name: "어류",
-    nodes: ["송사리", "큰가시고기", "붕어", "미꾸리", "가물치", "메기"]
+    nodes: ["송사리", "붕어", "가물치"]
   },
   {
     name: "양서·파충류",
@@ -23,7 +23,7 @@ const foodWebGroups = [
   },
   {
     name: "조류·포유류",
-    nodes: ["백로", "왜가리", "저어새", "수달", "너구리"]
+    nodes: ["백로", "수달"]
   },
   {
     name: "분해자",
@@ -35,17 +35,17 @@ const foodWebNodes = foodWebGroups.flatMap((group) => group.nodes);
 const decomposerNode = "미생물(메탄생성균)";
 
 const foodWebPredationRules = [
-  { prey: ["가시연", "녹조류", "돌말류"], predators: ["연테두리진딧물", "벼메뚜기", "붕어", "송사리"] },
-  { prey: ["큰고랭이"], predators: ["벼메뚜기", "붕어"] },
-  { prey: ["연테두리진딧물"], predators: ["실잠자리", "참개구리"] },
-  { prey: ["벼메뚜기"], predators: ["참개구리", "백로", "너구리"] },
-  { prey: ["실잠자리"], predators: ["송장헤엄치게", "송사리", "붕어", "참개구리", "왜가리"] },
-  { prey: ["송장헤엄치게"], predators: ["물장군", "게아재비", "참개구리", "왜가리"] },
-  { prey: ["물장군", "게아재비"], predators: ["왜가리", "백로", "너구리"] },
-  { prey: ["송사리", "큰가시고기"], predators: ["가물치", "메기", "수달", "저어새"] },
-  { prey: ["붕어", "미꾸리"], predators: ["수달", "너구리", "백로"] },
-  { prey: ["가물치", "메기"], predators: ["수달"] }
+  { prey: ["녹조류"], predators: ["송사리", "붕어"] },
+  { prey: ["가시연"], predators: ["벼메뚜기"] },
+  { prey: ["벼메뚜기"], predators: ["실잠자리", "참개구리"] },
+  { prey: ["실잠자리"], predators: ["물장군", "송사리"] },
+  { prey: ["송사리"], predators: ["가물치", "백로"] },
+  { prey: ["붕어"], predators: ["수달"] },
+  { prey: ["참개구리"], predators: ["백로"] },
+  { prey: ["가물치"], predators: ["수달"] }
 ];
+
+const decomposerSourceNodes = ["가시연", "벼메뚜기", "가물치", "수달"];
 
 const foodWebAnswerEdges = buildFoodWebAnswerEdges();
 const pyramidOrder = ["생산자 1000", "1차 소비자 100", "2차 소비자 10", "최상위 소비자 1"];
@@ -268,9 +268,7 @@ function buildFoodWebAnswerEdges() {
     });
   });
 
-  foodWebNodes
-    .filter((node) => node !== decomposerNode)
-    .forEach((node) => edges.add(edgeKey(node, decomposerNode)));
+  decomposerSourceNodes.forEach((node) => edges.add(edgeKey(node, decomposerNode)));
 
   return edges;
 }
@@ -292,8 +290,8 @@ function renderFoodWeb() {
   const summary = document.createElement("div");
   summary.className = "food-web-summary";
   summary.innerHTML = `
-    <strong>연결 현황 ${completeCount}/${totalCount}</strong>
-    <span>카드를 두 번 선택해 <b>먹히는 생물 ➜ 먹는 생물</b> 화살표를 만드세요. 모든 생물의 사체·배설물은 분해자에게 연결되고, 붕어·미꾸리는 진흙 바닥 유기물 순환을 돕는 연결까지 확인합니다.</span>
+    <strong>연결 현황 ${completeCount} / ${totalCount}</strong>
+    <span>카드를 두 번 선택해 <b>먹히는 생물 ➜ 먹는 생물</b> 화살표를 만드세요. 분해자 연결은 지정된 4개 생물만 미생물(메탄생성균)로 이어집니다.</span>
   `;
   elements.dropLane.appendChild(summary);
 
@@ -334,8 +332,11 @@ function renderFoodWeb() {
       card.type = "button";
       card.textContent = node;
       card.dataset.label = node;
-      card.setAttribute("aria-pressed", String(state.selectedFoodNode === node));
-      if (state.selectedFoodNode === node) card.classList.add("is-selected");
+      const isSelected = state.selectedFoodNode === node;
+      const isCompleted = isFoodNodeCompleted(node);
+      card.setAttribute("aria-pressed", String(isSelected));
+      if (isSelected) card.classList.add("selected");
+      if (isCompleted) card.classList.add("completed");
       card.addEventListener("click", () => chooseFoodNode(node));
       nodeWrap.appendChild(card);
     });
@@ -347,6 +348,11 @@ function renderFoodWeb() {
 
 function chooseFoodNode(label) {
   if (!foodWebNodes.includes(label)) return;
+
+  if (!state.selectedFoodNode && isFoodNodeCompleted(label)) {
+    showToast(`${label}: 필요한 정답 연결을 모두 완료했습니다.`, true);
+    return;
+  }
 
   if (!state.selectedFoodNode) {
     state.selectedFoodNode = label;
@@ -389,6 +395,16 @@ function placeFoodConnection(from, to) {
 function removeFoodConnection(key) {
   state.foodConnections = state.foodConnections.filter((connection) => connection !== key);
   renderFoodWeb();
+}
+
+function getRequiredOutgoingEdges(node) {
+  return [...foodWebAnswerEdges].filter((key) => parseEdgeKey(key).from === node);
+}
+
+function isFoodNodeCompleted(node) {
+  const requiredEdges = getRequiredOutgoingEdges(node);
+  if (requiredEdges.length === 0) return false;
+  return requiredEdges.every((key) => state.foodConnections.includes(key));
 }
 
 function checkFoodWeb() {
