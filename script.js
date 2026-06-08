@@ -165,43 +165,99 @@ function buildDenseMicroFishTraps() {
 
 // 순서가 맞춰진 후 정상 변수 초기화 진행
 const foodWebAnswerEdges = buildFoodWebAnswerEdges();
-const recoveryCards = [
-  { key: "A", text: "생산자 감소 & 2차 소비자 증가" },
-  { key: "B", text: "1차 소비자 감소" },
-  { key: "C", text: "생산자 증가 & 2차 소비자 감소 (평형 회복)" }
+const balanceSteps = [
+  {
+    phase: "step1",
+    label: "Step 1 · 초기 인과관계",
+    question: "1차 소비자의 비정상적 급증은 피라미드에 어떤 직접적인 영향을 미치나요?",
+    correctKey: "step1-a",
+    successMessage: "정답! 1차 소비자가 많아져서 생산자가 급격히 먹히고, 2차 소비자의 먹이도 풍부해졌습니다.",
+    choices: [
+      { key: "step1-a", text: "생산자 감소 & 2차 소비자 증가", isCorrect: true },
+      { key: "step1-b", text: "생산자 증가 & 2차 소비자 감소", isCorrect: false },
+      { key: "step1-c", text: "모든 생물 증가", isCorrect: false }
+    ]
+  },
+  {
+    phase: "step2",
+    label: "Step 2 · 중기 인과관계",
+    question: "그렇다면, 이 새로운 불균형(생산자 감소 & 2차 소비자 증가)은 1차 소비자에게 어떤 영향을 미칠까요?",
+    correctKey: "step2-a",
+    successMessage: "정답! 먹이가 부족하고 천적이 많아지니 1차 소비자의 개체수가 급감합니다.",
+    choices: [
+      { key: "step2-a", text: "1차 소비자 감소", isCorrect: true },
+      { key: "step2-b", text: "1차 소비자 증가", isCorrect: false },
+      { key: "step2-c", text: "생산자/2차 소비자 불변", isCorrect: false }
+    ]
+  },
+  {
+    phase: "step3",
+    label: "Step 3 · 최종 평형 회복",
+    question: "마지막으로, 1차 소비자의 급감이 생태계 전체에 미치는 영향은 무엇일까요?",
+    correctKey: "step3-a",
+    successMessage: "완벽한 정답! 이로써 경포습지 생태계는 스스로 불균형을 극복하고 평형을 회복했습니다!",
+    choices: [
+      { key: "step3-a", text: "생산자 다시 증가, 2차 소비자 다시 감소 (평형 회복)", isCorrect: true },
+      { key: "step3-b", text: "모든 생물 멸종", isCorrect: false },
+      { key: "step3-c", text: "생산자/2차 소비자 불변", isCorrect: false }
+    ]
+  }
 ];
-const recoveryAnswer = ["A", "B", "C"];
 const pyramidPhases = {
   crisis: {
-    caption: "위기 상태: 1차 소비자가 일시적으로 급증해 중간 층만 비정상적으로 팽창했습니다.",
+    caption: "Step 0 위기 발생: 1차 소비자가 일시적으로 급증해 중간 층만 비정상적으로 팽창했습니다.",
+    stats: [
+      ["생산자 개체수", "56 · 섭식 압박 시작"],
+      ["1차 소비자 개체수", "92 · 비정상 급증"],
+      ["2차 소비자 개체수", "34 · 증가 전"],
+      ["소비 압박", "매우 높음"]
+    ],
     layers: [
-      { key: "secondary", label: "2차 소비자", detail: "상위 포식자", width: 34, count: "증가 전" },
-      { key: "primary", label: "1차 소비자", detail: "초식동물·곤충", width: 92, count: "비정상 급증" },
-      { key: "producer", label: "생산자", detail: "식물·조류", width: 56, count: "압박 시작" }
+      { key: "secondary", label: "2차 소비자", detail: "상위 포식자", width: 34, count: "34" },
+      { key: "primary", label: "1차 소비자", detail: "초식동물·곤충", width: 92, count: "92" },
+      { key: "producer", label: "생산자", detail: "식물·조류", width: 56, count: "56" }
     ]
   },
   step1: {
-    caption: "Step 1: 1차 소비자가 많아지자 생산자는 줄고, 먹이가 풍부해진 2차 소비자는 증가합니다.",
+    caption: "Step 1 변화: 1차 소비자가 생산자를 많이 먹고, 풍부해진 먹이가 2차 소비자를 늘립니다.",
+    stats: [
+      ["생산자 개체수", "44 · 급격한 감소"],
+      ["1차 소비자 개체수", "86 · 아직 과밀"],
+      ["2차 소비자 개체수", "48 · 먹이 풍부로 증가"],
+      ["소비 압박", "위험"]
+    ],
     layers: [
-      { key: "secondary", label: "2차 소비자", detail: "포식 압력 증가", width: 48, count: "증가" },
-      { key: "primary", label: "1차 소비자", detail: "아직 과밀", width: 86, count: "과밀" },
-      { key: "producer", label: "생산자", detail: "섭식 피해", width: 44, count: "감소" }
+      { key: "secondary", label: "2차 소비자", detail: "포식자 증가", width: 48, count: "48" },
+      { key: "primary", label: "1차 소비자", detail: "아직 과밀", width: 86, count: "86" },
+      { key: "producer", label: "생산자", detail: "섭식 피해", width: 44, count: "44" }
     ]
   },
   step2: {
-    caption: "Step 2: 증가한 2차 소비자의 포식으로 1차 소비자가 감소하며 피라미드가 다시 좁아집니다.",
+    caption: "Step 2 변화: 먹이 부족과 포식 압력이 겹쳐 비대했던 1차 소비자 층이 확 줄어듭니다.",
+    stats: [
+      ["생산자 개체수", "64 · 회복 준비"],
+      ["1차 소비자 개체수", "48 · 급감"],
+      ["2차 소비자 개체수", "42 · 높은 포식 압력"],
+      ["소비 압박", "완화 중"]
+    ],
     layers: [
-      { key: "secondary", label: "2차 소비자", detail: "포식자 안정", width: 42, count: "높음" },
-      { key: "primary", label: "1차 소비자", detail: "개체수 조절", width: 58, count: "감소" },
-      { key: "producer", label: "생산자", detail: "회복 준비", width: 64, count: "회복 중" }
+      { key: "secondary", label: "2차 소비자", detail: "포식 압력 높음", width: 42, count: "42" },
+      { key: "primary", label: "1차 소비자", detail: "개체수 급감", width: 48, count: "48" },
+      { key: "producer", label: "생산자", detail: "회복 준비", width: 64, count: "64" }
     ]
   },
   step3: {
-    caption: "Step 3: 생산자가 늘고 2차 소비자는 줄어들어 안정적인 정삼각형 비율의 생태 피라미드가 회복됩니다.",
+    caption: "Step 3 평형 회복: 생산자는 다시 늘고 2차 소비자는 줄어 안정적인 정삼각형 비율로 돌아옵니다.",
+    stats: [
+      ["생산자 개체수", "88 · 안정적 기반"],
+      ["1차 소비자 개체수", "58 · 적정 수준"],
+      ["2차 소비자 개체수", "30 · 안정"],
+      ["소비 압박", "균형"]
+    ],
     layers: [
-      { key: "secondary", label: "2차 소비자", detail: "상위 소비자", width: 30, count: "안정" },
-      { key: "primary", label: "1차 소비자", detail: "1차 소비자", width: 58, count: "안정" },
-      { key: "producer", label: "생산자", detail: "생산자 기반", width: 88, count: "풍부" }
+      { key: "secondary", label: "2차 소비자", detail: "상위 소비자", width: 30, count: "30" },
+      { key: "primary", label: "1차 소비자", detail: "적정 수준", width: 58, count: "58" },
+      { key: "producer", label: "생산자", detail: "생산자 기반", width: 88, count: "88" }
     ]
   }
 };
@@ -316,8 +372,8 @@ const stageCopy = [
     description: "하단의 6개 생태 분류군을 6턴 동안 자유롭게 배치해 보세요. 생물들은 올바른 천이 순서와 선행 조건이 충족될 때만 상호작용하며 완벽한 생태계로 성장합니다."
   },
   {
-    title: "STAGE 3 - 생태 피라미드 밸런스 퍼즐",
-    description: "돌발 상황! 경포습지에 1차 소비자가 일시적으로 급증하여 생태계 평형이 무너졌습니다. 자연의 회복 순서에 맞게 카드를 배열해 피라미드를 복구하세요."
+    title: "STAGE 3 - 생태계 평형 회복 인과관계 시뮬레이션",
+    description: "Step 0 위기 발생! 1차 소비자가 비정상적으로 급증한 피라미드를 관찰하고, 3단계 질문의 올바른 인과관계를 선택해 평형을 회복하세요."
   }
 ];
 
@@ -337,10 +393,11 @@ const state = {
   shuffledRightItems: [],
   activeDrag: null,
   suppressPointerClick: false,
-  pyramidPlacements: [],
-  shuffledPyramidCards: [],
+  balanceStepIndex: 0,
+  shuffledBalanceChoices: [],
   pyramidPhase: "crisis",
   pyramidAnimating: false,
+  celebrationActive: false,
   growPlacements: [],
   shuffledGrowItems: [],
   growComplete: false,
@@ -377,11 +434,13 @@ const elements = {
   resetGrow: document.querySelector("#reset-grow"),
   skipStage: document.querySelector("#skip-stage"),
   pyramidStack: document.querySelector("#pyramid-stack"),
-  pyramidBank: document.querySelector("#pyramid-bank"),
-  pyramidCardBank: document.querySelector("#pyramid-card-bank"),
+  simulationData: document.querySelector("#simulation-data"),
   pyramidStepCaption: document.querySelector("#pyramid-step-caption"),
+  balanceStepLabel: document.querySelector("#balance-step-label"),
+  decisionQuestion: document.querySelector("#decision-question"),
+  decisionOptions: document.querySelector("#decision-options"),
   pyramidPopup: document.querySelector("#pyramid-popup"),
-  resetPyramid: document.querySelector("#reset-pyramid"),
+  celebrationEffect: document.querySelector("#celebration-effect"),
   wetlandCanvas: document.querySelector("#wetland-canvas"),
   growTurn: document.querySelector("#grow-turn"),
   growButtons: document.querySelector("#grow-buttons"),
@@ -1158,17 +1217,19 @@ function resetTraceStage(message) {
 }
 
 function resetPyramidProgress() {
-  state.pyramidPlacements = [];
-  state.shuffledPyramidCards = shuffle(recoveryCards);
+  state.balanceStepIndex = 0;
+  state.shuffledBalanceChoices = shuffle(balanceSteps[0].choices);
   state.pyramidPhase = "crisis";
   state.pyramidAnimating = false;
+  state.celebrationActive = false;
 }
 
 function renderPyramid() {
   elements.nextNode.textContent = "-";
   renderPyramidVisual();
-  renderRecoverySlots();
+  renderDecisionPanel();
   hidePyramidPopup();
+  hideCelebrationEffect();
 }
 
 function renderPyramidVisual() {
@@ -1183,106 +1244,115 @@ function renderPyramidVisual() {
     row.innerHTML = `
       <strong>${layer.label}</strong>
       <span>${layer.detail}</span>
-      <em>${layer.count}</em>
+      <em>개체수 ${layer.count}</em>
     `;
     elements.pyramidStack.appendChild(row);
   });
+
+  elements.simulationData.innerHTML = "";
+  phase.stats.forEach(([label, value]) => {
+    const term = document.createElement("dt");
+    term.textContent = label;
+    const description = document.createElement("dd");
+    description.textContent = value;
+    elements.simulationData.append(term, description);
+  });
 }
 
-function renderRecoverySlots() {
-  elements.pyramidBank.innerHTML = "";
-  recoveryAnswer.forEach((_, index) => {
-    const slot = document.createElement("div");
-    const cardKey = state.pyramidPlacements[index];
-    slot.className = `causal-slot${cardKey ? " is-filled" : ""}`;
-    slot.dataset.slotIndex = String(index);
-    slot.textContent = cardKey ? getRecoveryCard(cardKey).text : `${index + 1}번째 회복 카드`;
-    slot.addEventListener("dragover", handlePyramidDragOver);
-    slot.addEventListener("drop", handlePyramidDrop);
-    slot.addEventListener("click", () => removePyramidCard(index));
-    elements.pyramidBank.appendChild(slot);
+function getCurrentBalanceStep() {
+  return balanceSteps[state.balanceStepIndex] || null;
+}
+
+function renderDecisionPanel() {
+  const currentStep = getCurrentBalanceStep();
+  const completed = state.balanceStepIndex >= balanceSteps.length;
+  elements.balanceStepLabel.textContent = completed ? "Mission Complete · 평형 회복" : currentStep.label;
+  elements.decisionQuestion.textContent = completed
+    ? "경포습지 생태계가 스스로 평형을 회복했습니다."
+    : currentStep.question;
+
+  document.querySelectorAll(".step-dots i").forEach((dot, index) => {
+    dot.classList.toggle("is-active", index === state.balanceStepIndex && !completed);
+    dot.classList.toggle("is-complete", index < state.balanceStepIndex || completed);
   });
 
-  elements.pyramidCardBank.innerHTML = "";
-  const usedKeys = new Set(state.pyramidPlacements.filter(Boolean));
-  state.shuffledPyramidCards
-    .filter((card) => !usedKeys.has(card.key))
-    .forEach((card) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "causal-card";
-      button.draggable = !state.pyramidAnimating;
-      button.dataset.cardKey = card.key;
-      button.innerHTML = `<span>${card.key} 카드</span>${card.text}`;
-      button.addEventListener("dragstart", handlePyramidDragStart);
-      button.addEventListener("click", () => placePyramidCard(card.key));
-      elements.pyramidCardBank.appendChild(button);
-    });
+  elements.decisionOptions.innerHTML = "";
+  if (completed) {
+    const completeBadge = document.createElement("div");
+    completeBadge.className = "decision-complete-badge";
+    completeBadge.textContent = "모든 인과관계 판정 완료";
+    elements.decisionOptions.appendChild(completeBadge);
+    return;
+  }
+
+  state.shuffledBalanceChoices.forEach((choice, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "decision-option";
+    button.disabled = state.pyramidAnimating;
+    button.dataset.choiceKey = choice.key;
+    button.innerHTML = `<span>선택지 ${index + 1}</span>${choice.text}`;
+    button.addEventListener("click", () => handleBalanceChoice(choice.key));
+    elements.decisionOptions.appendChild(button);
+  });
 }
 
-function getRecoveryCard(key) {
-  return recoveryCards.find((card) => card.key === key);
-}
+function handleBalanceChoice(choiceKey) {
+  if (state.pyramidAnimating) return;
+  const currentStep = getCurrentBalanceStep();
+  if (!currentStep) return;
 
-function placePyramidCard(cardKey, slotIndex = state.pyramidPlacements.findIndex((key) => !key)) {
-  if (state.pyramidAnimating || state.pyramidPlacements.includes(cardKey)) return;
-  const targetIndex = slotIndex === -1 ? state.pyramidPlacements.length : slotIndex;
-  if (targetIndex < 0 || targetIndex >= recoveryAnswer.length) return;
-  state.pyramidPlacements[targetIndex] = cardKey;
-  renderRecoverySlots();
-  if (state.pyramidPlacements.filter(Boolean).length === recoveryAnswer.length) evaluatePyramidSequence();
-}
-
-function removePyramidCard(index) {
-  if (state.pyramidAnimating || !state.pyramidPlacements[index]) return;
-  state.pyramidPlacements[index] = undefined;
-  renderRecoverySlots();
-}
-
-function handlePyramidDragStart(event) {
-  event.dataTransfer.setData("text/plain", event.currentTarget.dataset.cardKey);
-}
-
-function handlePyramidDragOver(event) {
-  event.preventDefault();
-}
-
-function handlePyramidDrop(event) {
-  event.preventDefault();
-  const slotIndex = Number(event.currentTarget.dataset.slotIndex);
-  const cardKey = event.dataTransfer.getData("text/plain");
-  if (!cardKey || state.pyramidPlacements[slotIndex]) return;
-  placePyramidCard(cardKey, slotIndex);
-}
-
-function evaluatePyramidSequence() {
-  const isCorrect = recoveryAnswer.every((key, index) => state.pyramidPlacements[index] === key);
-  if (!isCorrect) {
-    showPyramidPopup("생태계 회복 순서가 맞지 않습니다.", false);
-    state.pyramidPlacements = [];
-    window.setTimeout(() => {
-      state.shuffledPyramidCards = shuffle(recoveryCards);
-      renderPyramid();
-    }, 900);
+  const selectedChoice = currentStep.choices.find((choice) => choice.key === choiceKey);
+  if (!selectedChoice?.isCorrect) {
+    showPyramidPopup("생태계 인과관계가 맞지 않습니다.", false);
+    state.shuffledBalanceChoices = shuffle(currentStep.choices);
+    renderDecisionPanel();
     return;
   }
 
   state.pyramidAnimating = true;
-  showPyramidPopup("정답입니다! 생태 피라미드가 자연의 회복 단계에 따라 복구됩니다.", true);
-  animatePyramidRecovery();
+  state.pyramidPhase = currentStep.phase;
+  renderPyramidVisual();
+  showPyramidPopup(currentStep.successMessage, true);
+
+  window.setTimeout(() => {
+    state.balanceStepIndex += 1;
+    const nextStep = getCurrentBalanceStep();
+    state.shuffledBalanceChoices = nextStep ? shuffle(nextStep.choices) : [];
+    state.pyramidAnimating = false;
+    renderDecisionPanel();
+
+    if (!nextStep) {
+      showFinalMissionSuccess();
+    }
+  }, 1300);
 }
 
-function animatePyramidRecovery() {
-  ["step1", "step2", "step3"].forEach((phase, index) => {
-    window.setTimeout(() => {
-      state.pyramidPhase = phase;
-      renderPyramidVisual();
-      if (phase === "step3") {
-        showPyramidPopup("생태계 평형이 완벽하게 회복되었습니다! 모든 방탈출 미션 성공!", true);
-        window.setTimeout(showResult, 1800);
-      }
-    }, (index + 1) * 900);
-  });
+function showFinalMissionSuccess() {
+  state.celebrationActive = true;
+  showPyramidPopup("모든 방탈출 미션 성공!", true);
+  renderCelebrationEffect();
+  window.setTimeout(showResult, 2200);
+}
+
+function renderCelebrationEffect() {
+  elements.celebrationEffect.innerHTML = "";
+  elements.celebrationEffect.classList.remove("is-hidden");
+  const colors = ["#f7b538", "#39a86b", "#7c5cff", "#4fb3ff", "#ff6f91"];
+  for (let index = 0; index < 54; index += 1) {
+    const piece = document.createElement("span");
+    piece.style.setProperty("--x", `${Math.random() * 100}vw`);
+    piece.style.setProperty("--delay", `${Math.random() * 0.45}s`);
+    piece.style.setProperty("--spin", `${Math.random() * 720 - 360}deg`);
+    piece.style.background = colors[index % colors.length];
+    elements.celebrationEffect.appendChild(piece);
+  }
+}
+
+function hideCelebrationEffect() {
+  state.celebrationActive = false;
+  elements.celebrationEffect.classList.add("is-hidden");
+  elements.celebrationEffect.innerHTML = "";
 }
 
 function showPyramidPopup(message, success) {
@@ -1294,11 +1364,6 @@ function showPyramidPopup(message, success) {
 
 function hidePyramidPopup() {
   elements.pyramidPopup.classList.add("is-hidden");
-}
-
-function resetPyramid() {
-  resetPyramidProgress();
-  renderPyramid();
 }
 
 function showResult() {
@@ -1327,7 +1392,7 @@ function skipCurrentStage() {
     showToast("STAGE 2를 건너뛰었습니다.", true);
     goToStage(2);
   } else if (state.stageIndex === 2) {
-    state.pyramidPlacements = [...recoveryAnswer];
+    state.balanceStepIndex = balanceSteps.length;
     state.pyramidPhase = "step3";
     showToast("STAGE 3을 건너뛰었습니다.", true);
     showResult();
@@ -1387,7 +1452,6 @@ window.addEventListener("resize", () => {
 elements.checkFoodWeb.addEventListener("click", checkFoodWeb);
 elements.resetFoodWeb.addEventListener("click", resetFoodWeb);
 elements.skipStage.addEventListener("click", skipCurrentStage);
-elements.resetPyramid.addEventListener("click", resetPyramid);
 elements.resetGrow.addEventListener("click", () => {
   resetGrowProgress();
   renderGrowStage();
