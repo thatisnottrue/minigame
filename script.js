@@ -48,6 +48,37 @@ const foodWebPredationRules = [
 
 const decomposerSourceNodes = ["가시연", "벼메뚜기", "가물치", "수달"];
 
+const plantInsectTracePath = [
+  {
+    x: 3,
+    y: 2,
+    label: "가시연 부활"
+  },
+  {
+    x: 7,
+    y: 2,
+    label: "연테두리진딧물 증가",
+    teleportTo: { x: 3, y: 4 },
+    assistSegments: [
+      { from: { x: 7, y: 2 }, to: { x: 7, y: 3 } }
+    ]
+  },
+  {
+    x: 3,
+    y: 5,
+    label: "실잠자리 성충 증가",
+    teleportTo: { x: 1, y: 7 },
+    assistSegments: [
+      { from: { x: 7, y: 4 }, to: { x: 7, y: 5 } }
+    ]
+  },
+  {
+    x: 9,
+    y: 7,
+    label: "물장군 사냥 활성화"
+  }
+];
+
 const foodWebAnswerEdges = buildFoodWebAnswerEdges();
 const pyramidOrder = ["생산자 1000", "1차 소비자 100", "2차 소비자 10", "최상위 소비자 1"];
 
@@ -61,36 +92,7 @@ const roleData = {
     start: { x: 3, y: 2 },
     initialNextIndex: 1,
     strictTrace: true,
-    path: [
-      {
-        x: 3,
-        y: 2,
-        label: "가시연 부활"
-      },
-      {
-        x: 7,
-        y: 2,
-        label: "연테두리진딧물 증가",
-        teleportTo: { x: 3, y: 5 },
-        assistSegments: [
-          { from: { x: 7, y: 2 }, to: { x: 7, y: 4 } }
-        ]
-      },
-      {
-        x: 3,
-        y: 6,
-        label: "실잠자리 성충 증가",
-        teleportTo: { x: 1, y: 6 },
-        assistSegments: [
-          { from: { x: 7, y: 5 }, to: { x: 7, y: 6 } }
-        ]
-      },
-      {
-        x: 9,
-        y: 6,
-        label: "물장군 사냥 활성화"
-      }
-    ],
+    path: plantInsectTracePath,
     traps: [
       { x: 0, y: 0, label: "식물 즙액 감소" },
       { x: 10, y: 0, label: "진딧물 급감" },
