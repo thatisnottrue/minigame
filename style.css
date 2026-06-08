@@ -125,8 +125,7 @@ h1 {
 .input-row button,
 .action-row button,
 #restart-button,
-#copy-answer,
-.stage-skip-controls button {
+#copy-answer {
   padding: 14px 20px;
   border-radius: 16px;
   color: white;
@@ -206,31 +205,6 @@ h1 {
 .stage-area {
   display: grid;
   gap: 16px;
-}
-
-/* Temporary test-only skip controls. Remove this isolated block with the matching JS/HTML when testing is finished. */
-.stage-skip-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 18px;
-  border: 2px dashed rgba(209, 73, 91, 0.58);
-  border-radius: 20px;
-  background: rgba(255, 247, 220, 0.94);
-  color: #6f3b00;
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.16);
-}
-
-.stage-skip-controls p {
-  margin: 0;
-  font-weight: 1000;
-}
-
-.stage-skip-controls button {
-  background: linear-gradient(135deg, var(--danger), #ff7a1a);
-  box-shadow: 0 10px 24px rgba(209, 73, 91, 0.3);
 }
 
 .food-web-board,
@@ -474,7 +448,11 @@ h1 {
   filter: drop-shadow(0 0 6px rgba(255, 38, 59, 0.58));
 }
 
-.trace-layer .assist-trace,
+.trace-layer .assist-trace {
+  stroke: var(--assist);
+  filter: drop-shadow(0 0 7px rgba(8, 119, 255, 0.62));
+}
+
 .trace-layer .system-trace {
   stroke: var(--accent);
   filter: drop-shadow(0 0 7px rgba(255, 38, 59, 0.72));
