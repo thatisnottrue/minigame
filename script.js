@@ -1,5 +1,5 @@
 const DEFAULT_BOARD_SIZE = 11;
-const TRACE_START_POINT = { x: 5, y: 1 };
+const TRACE_START_POINT = { x: 3, y: 3 };
 const foodWebGroups = [
   {
     name: "생산자",
@@ -50,31 +50,26 @@ const decomposerSourceNodes = ["가시연", "벼메뚜기", "가물치", "수달
 
 const plantInsectTracePath = [
   {
-    x: 5,
-    y: 2,
-    label: "가시연 부활"
+    x: 8,
+    y: 3,
+    label: "가시연 부활",
+    autoSegments: [{ from: { x: 4, y: 6 }, to: { x: 4, y: 8 } }]
   },
   {
-    x: 7,
-    y: 2,
-    label: "연테두리진딧물 증가",
-    teleportTo: { x: 3, y: 4 }
+    x: 8,
+    y: 6,
+    label: "연테두리진딧물 증가"
   },
   {
-    x: 3,
-    y: 5,
-    label: "실잠자리 성충 증가",
-    teleportTo: { x: 7, y: 4 }
-  },
-  {
-    x: 7,
-    y: 5,
+    x: 2,
+    y: 9,
     label: "물장군 사냥 활성화",
-    teleportTo: { x: 1, y: 7 }
+    traceMode: "none",
+    autoSegments: [{ from: { x: 6, y: 6 }, to: { x: 6, y: 8 } }]
   },
   {
     x: 9,
-    y: 7,
+    y: 9,
     label: "생태계 회복 완료"
   }
 ];
@@ -89,9 +84,8 @@ const roleData = {
     badge: "식물·곤충",
     resultLetters: ["교"],
     boardSize: 11,
-    start: { x: 5, y: 1 },
+    start: { x: 3, y: 3 },
     initialNextIndex: 0,
-    strictTrace: true,
     path: plantInsectTracePath,
     traps: [
       { x: 0, y: 0, label: "식물 즙액 감소" },
@@ -149,7 +143,7 @@ const stageCopy = [
   },
   {
     title: "STAGE 2 - 인과관계 궤적",
-    description: "캐릭터를 상/하/좌/우로 움직여 정답 노드를 순서대로 밟으세요. 순간이동 구간에는 선이 그려지지 않고, 플레이어가 직접 이동한 붉은 궤적만 남아 한글 '교'를 완성합니다."
+    description: "캐릭터를 상/하/좌/우로 자유롭게 움직여 정답 노드를 순서대로 밟으세요. 오답 노드나 순서가 다른 정답 노드에 닿으면 궤적이 초기화됩니다."
   },
   {
     title: "STAGE 3 - 생태 피라미드",
@@ -571,33 +565,37 @@ function addTraceSegment(from, to) {
   });
 }
 
-function getExpectedStrokeStart(role = state.role) {
+function getCurrentLegStart(role = state.role) {
   if (state.nextIndex === 0) return getTraceStart(role);
   const previousNode = role.path[state.nextIndex - 1];
-  return previousNode.teleportTo ? { ...previousNode.teleportTo } : { x: previousNode.x, y: previousNode.y };
+  return { x: previousNode.x, y: previousNode.y };
 }
 
-function isPointOnCurrentStroke(point) {
+function isPointOnCurrentTraceLeg(point) {
   const nextNode = state.role.path[state.nextIndex];
-  if (!nextNode) return false;
+  if (!nextNode || nextNode.traceMode === "none") return false;
 
-  const start = getExpectedStrokeStart();
-  const dx = Math.sign(nextNode.x - start.x);
-  const dy = Math.sign(nextNode.y - start.y);
-  const length = Math.max(Math.abs(nextNode.x - start.x), Math.abs(nextNode.y - start.y));
+  const start = getCurrentLegStart();
+  const isHorizontalLeg = start.y === nextNode.y;
+  const isVerticalLeg = start.x === nextNode.x;
+  if (!isHorizontalLeg && !isVerticalLeg) return false;
 
-  for (let step = 0; step <= length; step += 1) {
-    if (point.x === start.x + dx * step && point.y === start.y + dy * step) return true;
+  if (isHorizontalLeg) {
+    const minX = Math.min(start.x, nextNode.x);
+    const maxX = Math.max(start.x, nextNode.x);
+    return point.y === start.y && point.x >= minX && point.x <= maxX;
   }
 
-  return false;
+  const minY = Math.min(start.y, nextNode.y);
+  const maxY = Math.max(start.y, nextNode.y);
+  return point.x === start.x && point.y >= minY && point.y <= maxY;
 }
 
-function isStepTowardNextNode(from, to) {
+function isDrawableTraceStep(from, to) {
   const nextNode = state.role.path[state.nextIndex];
-  if (!nextNode || !isPointOnCurrentStroke(from) || !isPointOnCurrentStroke(to)) return false;
+  if (!nextNode || nextNode.traceMode === "none" || !isPointOnCurrentTraceLeg(from) || !isPointOnCurrentTraceLeg(to)) return false;
 
-  const start = getExpectedStrokeStart();
+  const start = getCurrentLegStart();
   const dx = Math.sign(nextNode.x - start.x);
   const dy = Math.sign(nextNode.y - start.y);
   return to.x - from.x === dx && to.y - from.y === dy;
@@ -622,65 +620,39 @@ function movePlayer(direction) {
     return;
   }
 
-  const nextNode = state.role.path[state.nextIndex];
   state.player = nextPosition;
-  const isValidStroke = !state.role.strictTrace || isStepTowardNextNode(currentPosition, nextPosition);
-  if (isValidStroke) addTraceSegment(currentPosition, nextPosition);
-  evaluateTraceCell(isValidStroke);
+  if (isDrawableTraceStep(currentPosition, nextPosition)) addTraceSegment(currentPosition, nextPosition);
+  evaluateTraceCell();
   renderTraceStage();
 }
 
-function evaluateTraceCell(isValidStroke) {
+function evaluateTraceCell() {
   const role = state.role;
   const playerKey = cellKey(state.player);
   const wrongNode = [...role.traps, ...(role.fakePath || [])].find((node) => cellKey(node) === playerKey);
-  const touchedPathNode = role.path.find((node) => cellKey(node) === playerKey);
+  const touchedPathIndex = role.path.findIndex((node) => cellKey(node) === playerKey);
+  const touchedFuturePathNode = touchedPathIndex > state.nextIndex;
   const nextNode = role.path[state.nextIndex];
 
-  if (wrongNode || (touchedPathNode && touchedPathNode !== nextNode)) {
-    resetTraceStage("생태계 인과관계가 맞지 않습니다! 모든 '교' 자 획을 지우고 출발점으로 돌아갑니다.");
-    return;
-  }
-
-  if (!isValidStroke) {
-    resetTraceStage("정해진 획 좌표를 벗어났습니다! 모든 '교' 자 획을 지우고 출발점으로 돌아갑니다.");
+  if (wrongNode || touchedFuturePathNode) {
+    resetTraceStage("생태계 인과관계가 맞지 않거나 잘못된 정보입니다!");
     return;
   }
 
   if (!nextNode || cellKey(nextNode) !== playerKey) return;
 
   state.nextIndex += 1;
-  showToast(`정답 인과관계 확인: ${nextNode.label}`, true);
-
-  if (nextNode.teleportTo) {
-    state.player = { ...nextNode.teleportTo };
-    state.strokeStart = { ...nextNode.teleportTo };
-    completeTeleportArrivalNodes();
-
-    if (state.nextIndex >= role.path.length) {
-      completeTraceStage();
-      return;
-    }
-
-    showToast(`${nextNode.label} 확인! 다음 획 시작 좌표로 순간이동했습니다.`, true);
-    return;
-  }
-
   state.strokeStart = { ...nextNode };
+  addAutoTraceSegments(nextNode);
+  showToast(`정답 인과관계 확인: ${nextNode.label}`, true);
 
   if (state.nextIndex >= role.path.length) {
     completeTraceStage();
   }
 }
 
-function completeTeleportArrivalNodes() {
-  let nextNode = state.role.path[state.nextIndex];
-
-  while (nextNode?.completeOnTeleport && cellKey(nextNode) === cellKey(state.player)) {
-    state.nextIndex += 1;
-    state.strokeStart = { x: nextNode.x, y: nextNode.y };
-    nextNode = state.role.path[state.nextIndex];
-  }
+function addAutoTraceSegments(node) {
+  (node.autoSegments || []).forEach((segment) => addTraceSegment(segment.from, segment.to));
 }
 
 function completeTraceStage() {
