@@ -1639,3 +1639,15 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
+
+.teacher-only {
+  display: none;
+}
+
+.is-teacher-mode .teacher-only {
+  display: block;
+}
+
+.is-teacher-mode .quick-passcodes {
+  display: grid;
+}
