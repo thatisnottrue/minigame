@@ -927,10 +927,10 @@ function getCorrectGrowProgress() {
 }
 
 function getGrowTurnText() {
-  const progress = getCorrectGrowProgress();
-  if (state.growComplete) return "Turn 6 / 6 · 복원 완료";
-  if (state.growFailed) return `Turn ${progress} / ${growSequence.length} · 천이 실패`;
-  return `Turn ${progress + 1} / ${growSequence.length}`;
+  const currentTurn = Math.min(state.growPlacements.length + (state.growComplete || state.growFailed ? 0 : 1), growSequence.length);
+  if (state.growComplete) return `Turn ${growSequence.length} / ${growSequence.length} · 복원 완료`;
+  if (state.growFailed) return `Turn ${growSequence.length} / ${growSequence.length} · 천이 실패`;
+  return `Turn ${currentTurn} / ${growSequence.length}`;
 }
 
 function renderGrowEndingPanel() {
@@ -939,8 +939,9 @@ function renderGrowEndingPanel() {
   elements.stageClearPopup.classList.toggle("is-bad-ending", state.growFailed);
 
   if (state.growComplete) {
+    const completedLetters = state.role.resultLetters.join(" / ");
     elements.stageClearTitle.textContent = "경포가시연습지 완벽 복원 성공!";
-    elements.stageClearMessage.textContent = "6단계 생태계 천이가 완성되어 모든 생물이 [Lv.MAX]로 빛납니다.";
+    elements.stageClearMessage.textContent = `6단계 생태계 천이가 완성되어 모든 생물이 [Lv.MAX]로 빛납니다. 힌트 글자 [ ${completedLetters} ]가 해금되었습니다.`;
   } else if (state.growFailed) {
     elements.stageClearTitle.textContent = "생태계 천이 실패";
     elements.stageClearMessage.textContent = "생태계 평형이 어긋나 천이가 실패했습니다.";
@@ -965,7 +966,7 @@ function renderGrowStage() {
     const organism = growSequence.find((item) => item.key === placement.key);
     const levelIndex = placement.level === "MAX" ? 2 : Math.min(placement.level - 1, 2);
     const levelLabel = placement.level === "MAX" ? "Lv.MAX" : `Lv.${placement.level}`;
-    const isBadStatus = placement.stunted || state.growFailed;
+    const isBadStatus = placement.stunted;
     const card = document.createElement("div");
     card.className = `grow-organism grow-${organism.key}`;
     card.classList.toggle("is-stunted", isBadStatus);
@@ -974,7 +975,7 @@ function renderGrowStage() {
       <span class="grow-emoji" aria-hidden="true">${organism.emojiStages[levelIndex]}</span>
       <strong>${organism.name}</strong>
       <em>${levelLabel}</em>
-      <small>${isBadStatus ? getGrowBadEffect(organism.key) : organism.descriptions[levelIndex]}</small>
+      <small>${organism.descriptions[levelIndex]}</small>
     `;
     card.style.animationDelay = `${index * 80}ms`;
     elements.growOrganisms.appendChild(card);
@@ -995,34 +996,35 @@ function renderGrowStage() {
 function chooseGrowOrganism(key) {
   if (state.growComplete || state.growFailed) return;
 
-  const expectedItem = growSequence[state.growPlacements.length];
+  const turnIndex = state.growPlacements.length;
+  const expectedItem = growSequence[turnIndex];
   const isCorrectTurnChoice = expectedItem?.key === key;
   const placedKeys = new Set(state.growPlacements.map((placement) => placement.key));
   const canNewOrganismGrow = isCorrectTurnChoice && hasGrowPrerequisites(key, placedKeys);
 
   state.growPlacements = state.growPlacements.map((placement) => {
-    const currentKeys = new Set([...placedKeys, key]);
-    const canGrow = isCorrectTurnChoice && hasGrowPrerequisites(placement.key, currentKeys);
-    const nextLevel = canGrow ? Math.min(placement.level + 1, 3) : placement.level;
+    if (placement.stunted || !isCorrectTurnChoice) return placement;
     return {
       ...placement,
-      level: nextLevel,
-      stunted: placement.stunted || !canGrow
+      level: Math.min(placement.level + 1, 3)
     };
   });
   state.growPlacements.push({ key, level: 1, stunted: !canNewOrganismGrow });
 
-  if (!isCorrectTurnChoice) {
-    state.growFailed = true;
-    const selected = growSequence.find((item) => item.key === key);
-    showToast(`${selected.buttonLabel}은 올바른 천이 순서가 아니어서 생태계 진화가 중단되었습니다.`, false);
-  } else if (state.growPlacements.length === growSequence.length) {
-    state.growComplete = true;
-    state.growPlacements = state.growPlacements.map((placement) => ({ ...placement, level: "MAX", stunted: false }));
-    showToast("경포가시연습지 완벽 복원 성공! STAGE 3 진입 버튼이 활성화되었습니다.", true);
+  const selected = growSequence.find((item) => item.key === key);
+  if (state.growPlacements.length === growSequence.length) {
+    const isPerfectRestoration = state.growPlacements.every((placement, index) => placement.key === growSequence[index].key);
+    state.growComplete = isPerfectRestoration;
+    state.growFailed = !isPerfectRestoration;
+
+    if (isPerfectRestoration) {
+      state.growPlacements = state.growPlacements.map((placement) => ({ ...placement, level: "MAX", stunted: false }));
+      showToast("경포가시연습지 완벽 복원 성공! STAGE 3 진입 버튼이 활성화되었습니다.", true);
+    } else {
+      showToast("6턴 복원이 끝났지만 생태계 평형이 어긋났습니다.", false);
+    }
   } else {
-    const selected = growSequence.find((item) => item.key === key);
-    showToast(`${selected.buttonLabel} 배치 완료! 배경이 Turn ${state.growPlacements.length} 단계로 진화합니다.`, true);
+    showToast(`${selected.buttonLabel} 배치 완료! Turn ${state.growPlacements.length} / ${growSequence.length}`, true);
   }
 
   renderGrowStage();
