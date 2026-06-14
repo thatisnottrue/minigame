@@ -23,13 +23,9 @@
           <p id="passcode-error" class="error-text" role="alert"></p>
         </form>
 
-        <div class="quick-passcodes" aria-label="생물 이름 빠른 입장">
-          <button type="button" data-passcode="연테두리진딧물">연테두리진딧물</button>
-          <button type="button" data-passcode="메탄생성균">메탄생성균</button>
-          <button type="button" data-passcode="잿빛개구리매">잿빛개구리매</button>
-        </div>
+        <div id="quick-passcodes" class="quick-passcodes teacher-only" aria-label="생물 이름 빠른 입장"></div>
 
-        <details class="code-help">
+        <details id="code-help" class="code-help teacher-only">
           <summary>생물 이름과 역할 보기</summary>
           <ul>
             <li><strong>연테두리진딧물</strong> — 식물·곤충 전문가</li>
@@ -49,7 +45,7 @@
         </div>
         <div class="hud-stats" aria-label="진행 현황">
           <span>역할 <strong id="role-badge">-</strong></span>
-          <button id="skip-stage" type="button" class="skip-stage-button">현재 스테이지 스킵</button>
+          <button id="skip-stage" type="button" class="skip-stage-button" hidden disabled>현재 스테이지 스킵</button>
         </div>
       </header>
 

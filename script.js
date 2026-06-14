@@ -1,4 +1,6 @@
 const DEFAULT_BOARD_SIZE = 11;
+const TEACHER_PASSCODE = "선생님";
+const quickPasscodeValues = ["연테두리진딧물", "메탄생성균", "잿빛개구리매"];
 const TRACE_START_POINT = { x: 3, y: 3 };
 const leftFoodItems = [
   "가시연",
@@ -401,7 +403,8 @@ const state = {
   growPlacements: [],
   shuffledGrowItems: [],
   growComplete: false,
-  growFailed: false
+  growFailed: false,
+  teacherMode: false
 };
 
 const elements = {
@@ -411,6 +414,8 @@ const elements = {
   form: document.querySelector("#passcode-form"),
   passcodeInput: document.querySelector("#passcode-input"),
   passcodeError: document.querySelector("#passcode-error"),
+  quickPasscodes: document.querySelector("#quick-passcodes"),
+  codeHelp: document.querySelector("#code-help"),
   stageNumber: document.querySelector("#stage-number"),
   stageTitle: document.querySelector("#stage-title"),
   stageDescription: document.querySelector("#stage-description"),
@@ -463,8 +468,39 @@ function getRoleByPasscode(value) {
   return { passcode, role: roleData[passcode] || null };
 }
 
+function renderTeacherMode() {
+  document.body.classList.toggle("is-teacher-mode", state.teacherMode);
+  elements.skipStage.hidden = !state.teacherMode;
+  elements.skipStage.disabled = !state.teacherMode;
+  elements.quickPasscodes.replaceChildren();
+
+  if (!state.teacherMode) return;
+
+  quickPasscodeValues.forEach((passcode) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.passcode = passcode;
+    button.textContent = passcode;
+    elements.quickPasscodes.append(button);
+  });
+}
+
+function enableTeacherMode() {
+  state.teacherMode = true;
+  elements.passcodeInput.value = "";
+  elements.passcodeError.textContent = "교사용 모드가 활성화되었습니다.";
+  elements.passcodeInput.classList.remove("is-correct");
+  renderTeacherMode();
+  showScreen("start");
+}
+
 function startGameFromPasscode(value) {
   const { passcode, role } = getRoleByPasscode(value);
+
+  if (passcode === TEACHER_PASSCODE) {
+    enableTeacherMode();
+    return;
+  }
 
   if (!passcode) {
     elements.passcodeError.textContent = "생물 이름을 입력하세요.";
@@ -1424,11 +1460,11 @@ elements.passcodeInput.addEventListener("input", () => {
   elements.passcodeInput.classList.remove("is-correct");
 });
 
-document.querySelectorAll("[data-passcode]").forEach((button) => {
-  button.addEventListener("click", () => {
-    elements.passcodeInput.value = button.dataset.passcode;
-    startGameFromPasscode(button.dataset.passcode);
-  });
+elements.quickPasscodes.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-passcode]");
+  if (!button || !state.teacherMode) return;
+  elements.passcodeInput.value = button.dataset.passcode;
+  startGameFromPasscode(button.dataset.passcode);
 });
 
 document.addEventListener("keydown", (event) => {
@@ -1458,7 +1494,10 @@ window.addEventListener("resize", () => {
 
 elements.checkFoodWeb.addEventListener("click", checkFoodWeb);
 elements.resetFoodWeb.addEventListener("click", resetFoodWeb);
-elements.skipStage.addEventListener("click", skipCurrentStage);
+elements.skipStage.addEventListener("click", () => {
+  if (!state.teacherMode) return;
+  skipCurrentStage();
+});
 elements.resetGrow.addEventListener("click", () => {
   resetGrowProgress();
   renderGrowStage();
@@ -1472,6 +1511,9 @@ elements.enterStageThree.addEventListener("click", () => {
 elements.restartButton.addEventListener("click", () => {
   elements.passcodeInput.value = "";
   showScreen("start");
+  renderTeacherMode();
   elements.passcodeInput.focus();
 });
 elements.copyAnswer.addEventListener("click", () => showToast("정답 장소는 '과학실'입니다. 단, 조원끼리 근거를 설명해야 최종 해제 성공!", true));
+
+renderTeacherMode();
