@@ -121,6 +121,11 @@ h1 {
   border-radius: 16px;
 }
 
+.input-row input.is-correct {
+  border-color: var(--completed);
+  box-shadow: 0 0 0 4px rgba(141, 230, 176, 0.35), 0 0 22px rgba(63, 143, 93, 0.45);
+}
+
 .input-row button,
 .action-row button,
 #restart-button,
