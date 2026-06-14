@@ -437,6 +437,7 @@ const elements = {
   stageClearMessage: document.querySelector("#stage-clear-popup p"),
   enterStageThree: document.querySelector("#enter-stage-three"),
   resetGrow: document.querySelector("#reset-grow"),
+  resetGrowHeader: document.querySelector("#reset-grow-header"),
   skipStage: document.querySelector("#skip-stage"),
   pyramidStack: document.querySelector("#pyramid-stack"),
   simulationData: document.querySelector("#simulation-data"),
@@ -574,6 +575,9 @@ function renderStage() {
   elements.stageThree.classList.toggle("is-hidden", state.stageIndex !== 2);
   elements.nextNodeWrap.classList.add("is-hidden");
   elements.skipStage.textContent = state.stageIndex < 2 ? `STAGE ${state.stageIndex + 1} 스킵` : "결과 화면으로 스킵";
+  const canResetGrow = state.stageIndex === 1;
+  elements.resetGrowHeader.hidden = !canResetGrow;
+  elements.resetGrowHeader.disabled = !canResetGrow;
   if (state.stageIndex !== 1) {
     elements.stageClearPopup.classList.add("is-hidden");
     elements.enterStageThree.disabled = true;
@@ -881,6 +885,15 @@ function resetGrowProgress() {
   state.shuffledGrowItems = shuffle(growSequence);
   state.growComplete = false;
   state.growFailed = false;
+}
+
+function confirmAndResetGrowProgress() {
+  const confirmed = window.confirm("지금까지의 복원 진행 상황을 초기화하고 처음부터 다시 시작하시겠습니까?");
+  if (!confirmed) return;
+
+  resetGrowProgress();
+  renderGrowStage();
+  showToast("경포습지 복원을 처음부터 다시 시작합니다.", true);
 }
 
 function getGrowIndex(key) {
@@ -1498,11 +1511,8 @@ elements.skipStage.addEventListener("click", () => {
   if (!state.teacherMode) return;
   skipCurrentStage();
 });
-elements.resetGrow.addEventListener("click", () => {
-  resetGrowProgress();
-  renderGrowStage();
-  showToast("경포습지 복원을 처음부터 다시 시작합니다.", true);
-});
+elements.resetGrowHeader.addEventListener("click", confirmAndResetGrowProgress);
+elements.resetGrow.addEventListener("click", confirmAndResetGrowProgress);
 elements.enterStageThree.addEventListener("click", () => {
   if (!state.growComplete) return;
   showToast("생태 피라미드로 이동합니다.", true);

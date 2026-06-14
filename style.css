@@ -216,22 +216,37 @@ h1 {
 }
 
 .hud-stats span,
-.skip-stage-button {
+.skip-stage-button,
+.reset-grow-header-button {
   padding: 9px 12px;
   border-radius: 999px;
   background: #e8f3df;
   white-space: nowrap;
 }
 
-.skip-stage-button {
+.skip-stage-button,
+.reset-grow-header-button {
   color: var(--primary-dark);
   font-weight: 900;
+}
+
+.skip-stage-button {
   box-shadow: inset 0 0 0 2px rgba(63, 143, 93, 0.16);
+}
+
+.reset-grow-header-button {
+  background: #f1eee6;
+  box-shadow: inset 0 0 0 2px rgba(112, 92, 62, 0.14);
 }
 
 .skip-stage-button:hover,
 .skip-stage-button:focus-visible {
   background: #d9edcf;
+}
+
+.reset-grow-header-button:hover,
+.reset-grow-header-button:focus-visible {
+  background: #e5dfd3;
 }
 
 .mission-panel {
