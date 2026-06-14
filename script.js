@@ -307,8 +307,8 @@ const growSequence = [
 ];
 
 const roleData = {
-  "1004": {
-    code: "1004",
+  "연테두리진딧물": {
+    code: "연테두리진딧물",
     roleName: "식물·곤충 전문가",
     badge: "식물·곤충",
     resultLetters: ["과"],
@@ -326,8 +326,8 @@ const roleData = {
     ],
     hint: "1. 당신이 GROW 복원 게임에서 완성한 글자 [ 과 ]는 최종 장소 이름의 '첫 번째 글자'입니다.\n2. [사용 방법]: 조원들이 얻은 [ 학 ], [ 실 ]과 결합해 최종 장소를 완성하십시오."
   },
-  "2005": {
-    code: "2005",
+  "메탄생성균": {
+    code: "메탄생성균",
     roleName: "미생물·어류 전문가",
     badge: "미생물·어류",
     resultLetters: ["학"],
@@ -340,8 +340,8 @@ const roleData = {
     traps: buildDenseMicroFishTraps(),
     hint: "1. 당신이 GROW 복원 게임에서 완성한 글자 [ 학 ]는 최종 장소 이름의 '두 번째 글자'입니다.\n2. [사용 방법]: 조원들이 얻은 [ 과 ], [ 실 ]과 결합해 최종 장소를 완성하십시오."
   },
-  "3006": {
-    code: "3006",
+  "잿빛개구리매": {
+    code: "잿빛개구리매",
     roleName: "조류·포유류 전문가",
     badge: "조류·포유류",
     resultLetters: ["실"],
@@ -455,9 +455,7 @@ const elements = {
 };
 
 function normalizePasscode(value) {
-  return value
-    .normalize("NFKC")
-    .replace(/\D/g, "");
+  return value.normalize("NFKC").trim();
 }
 
 function getRoleByPasscode(value) {
@@ -469,20 +467,24 @@ function startGameFromPasscode(value) {
   const { passcode, role } = getRoleByPasscode(value);
 
   if (!passcode) {
-    elements.passcodeError.textContent = "패스코드 숫자를 입력하세요.";
+    elements.passcodeError.textContent = "생물 이름을 입력하세요.";
     elements.passcodeInput.focus();
     return;
   }
 
   if (!role) {
-    elements.passcodeError.textContent = "등록되지 않은 패스코드입니다. 1004, 2005, 3006 중 하나를 입력하세요.";
+    elements.passcodeError.textContent = "올바른 생물 이름이 아닙니다. 다시 한번 단서를 확인해 보세요.";
+    elements.passcodeInput.value = "";
+    elements.passcodeInput.classList.remove("is-correct");
     elements.passcodeInput.focus();
     return;
   }
 
   elements.passcodeInput.value = passcode;
   elements.passcodeError.textContent = "";
-  beginGame(role);
+  elements.passcodeInput.classList.add("is-correct");
+  showToast("정답입니다! 잠금이 해제되었습니다.", true);
+  window.setTimeout(() => beginGame(role), 450);
 }
 
 function showScreen(screenName) {
@@ -1419,6 +1421,7 @@ elements.form.addEventListener("submit", (event) => {
 
 elements.passcodeInput.addEventListener("input", () => {
   elements.passcodeError.textContent = "";
+  elements.passcodeInput.classList.remove("is-correct");
 });
 
 document.querySelectorAll("[data-passcode]").forEach((button) => {
