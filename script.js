@@ -900,12 +900,28 @@ function getGrowIndex(key) {
   return growSequence.findIndex((item) => item.key === key);
 }
 
-function hasGrowPrerequisites(key, placedKeys) {
-  const organismIndex = getGrowIndex(key);
-  if (organismIndex <= 0) return true;
-  return growSequence
-    .slice(0, organismIndex)
-    .every((item) => placedKeys.has(item.key));
+function getPlacedGrowOrderMap(placements) {
+  return new Map(placements.map((placement, index) => [placement.key, index]));
+}
+
+function evaluateGrowPlacements(placements) {
+  const placedOrder = getPlacedGrowOrderMap(placements);
+
+  return placements.map((placement, placementOrder) => {
+    const chainIndex = getGrowIndex(placement.key);
+    const previousKey = growSequence[chainIndex - 1]?.key;
+    const nextKey = growSequence[chainIndex + 1]?.key;
+    const previousOrder = previousKey ? placedOrder.get(previousKey) : undefined;
+    const nextOrder = nextKey ? placedOrder.get(nextKey) : undefined;
+    const isSettled = !previousKey || (previousOrder !== undefined && previousOrder < placementOrder);
+    const hasInteraction = isSettled && nextOrder !== undefined && placementOrder < nextOrder;
+
+    return {
+      ...placement,
+      level: isSettled && hasInteraction ? 2 : 1,
+      stunted: !isSettled
+    };
+  });
 }
 
 function getGrowBadEffect(key) {
@@ -921,9 +937,7 @@ function getGrowBadEffect(key) {
 }
 
 function getCorrectGrowProgress() {
-  const mismatchIndex = state.growPlacements.findIndex((placement, index) => placement.key !== growSequence[index].key);
-  if (mismatchIndex >= 0) return mismatchIndex;
-  return state.growPlacements.length;
+  return state.growPlacements.filter((placement) => !placement.stunted).length;
 }
 
 function getGrowTurnText() {
@@ -975,7 +989,7 @@ function renderGrowStage() {
       <span class="grow-emoji" aria-hidden="true">${organism.emojiStages[levelIndex]}</span>
       <strong>${organism.name}</strong>
       <em>${levelLabel}</em>
-      <small>${organism.descriptions[levelIndex]}</small>
+      <small>${isBadStatus ? getGrowBadEffect(placement.key) : organism.descriptions[levelIndex]}</small>
     `;
     card.style.animationDelay = `${index * 80}ms`;
     elements.growOrganisms.appendChild(card);
@@ -996,20 +1010,8 @@ function renderGrowStage() {
 function chooseGrowOrganism(key) {
   if (state.growComplete || state.growFailed) return;
 
-  const turnIndex = state.growPlacements.length;
-  const expectedItem = growSequence[turnIndex];
-  const isCorrectTurnChoice = expectedItem?.key === key;
-  const placedKeys = new Set(state.growPlacements.map((placement) => placement.key));
-  const canNewOrganismGrow = isCorrectTurnChoice && hasGrowPrerequisites(key, placedKeys);
-
-  state.growPlacements = state.growPlacements.map((placement) => {
-    if (placement.stunted || !isCorrectTurnChoice) return placement;
-    return {
-      ...placement,
-      level: Math.min(placement.level + 1, 3)
-    };
-  });
-  state.growPlacements.push({ key, level: 1, stunted: !canNewOrganismGrow });
+  state.growPlacements.push({ key, level: 1, stunted: false });
+  state.growPlacements = evaluateGrowPlacements(state.growPlacements);
 
   const selected = growSequence.find((item) => item.key === key);
   if (state.growPlacements.length === growSequence.length) {
@@ -1021,6 +1023,7 @@ function chooseGrowOrganism(key) {
       state.growPlacements = state.growPlacements.map((placement) => ({ ...placement, level: "MAX", stunted: false }));
       showToast("경포가시연습지 완벽 복원 성공! STAGE 3 진입 버튼이 활성화되었습니다.", true);
     } else {
+      state.growPlacements = evaluateGrowPlacements(state.growPlacements);
       showToast("6턴 복원이 끝났지만 생태계 평형이 어긋났습니다.", false);
     }
   } else {
